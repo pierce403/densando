@@ -1,0 +1,19 @@
+{% extends 'footer.html' %}
+
+{% block content %}
+
+<form action="/login" method="get">
+
+<p>Congratulations Humanoid #{{ user_id }}, you have successfully completed the first second in the minutes and hours you will spend with me working towards a future tomorrow.</p>
+
+<label for="display_name">I have been told many times that it is offensive to humanoids to be referred to by SKU number... perhaps you'd be so kind as to provide another series of alphanumeric characters for me to refer to you by?
+</label>
+
+<input type="text" name="display_name" default="Display Name" required></input>
+<p>If you interact with any of the other humanoids through my mighty brain, I will tell them to call you by that name too.</p>
+
+<button type="submit">Submit Button</button>
+
+</form>
+
+{% endblock content %}

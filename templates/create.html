@@ -1,0 +1,27 @@
+{% extends 'footer.html' %}
+
+{% block content %}
+{% if test_id %}
+<h1>{{ test_id }}</h1>
+{% endif %}
+
+
+<form action="/c" method="post">
+<input id="title" type="text" name="title"></input>
+<input id="id" type="hidden" name="id"></input>
+<select id="group" name="group">
+    <option value="python">Python</option>
+    <option value="javascript">JavaScript</option>
+</select>
+<textarea id="description" name="description"></textarea>
+<button type="submit">Submit Button</button>
+</form>
+
+<script type="text/javascript">
+document.getElementById('id').value = "{{ id }}";
+document.getElementById('title').value = "{{ title }}";
+document.getElementById('group').value = "{{ group }}";
+document.getElementById('description').value = "{{ description }}";
+</script>
+
+{% endblock content %}

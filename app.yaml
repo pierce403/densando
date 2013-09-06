@@ -1,0 +1,35 @@
+application: bitcoinlist
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: no
+
+#inbound_services:
+#- mail
+
+handlers:
+- url: /_ah/login_required   ## Not necessary?  Keeping as reference for now
+  script: do_openid_login.py ## as it might be required for OpenID
+
+#- url: /css
+#  static_dir: www/css
+
+#- url: /js
+#  static_dir: www/js
+
+#- url: /img
+#  static_dir: www/img
+
+#- url: /favicon.ico
+#  static_files: www/favicon.ico
+#  upload: www/favicon.ico
+
+#- url: /_ah/mail/.+
+#  script: bitlist.email_handler
+#  login: admin
+
+- url: /.*
+  script: densando.app
+  # login: required # if this were to be used as a login-required view
+
+

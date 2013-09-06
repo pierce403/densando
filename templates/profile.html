@@ -1,0 +1,23 @@
+{% extends 'footer.html' %}
+
+{% block content %}
+<section>
+
+<table border="1" style="float:left; margin: 6px;">
+	<thead><tr><th colspan="2">{{ name }}'s Profile</th></tr></thead>
+	<tbody>
+		<tr><td>ID</td><td>{{ id  }}</td></tr>
+		<tr><td>Display Name</td><td>{{ name }}</td></tr>
+		<tr><td>Member Since</td><td>{{ start_date }}</td></tr>
+		<tr><td>Biography</td><td>{{ bio }}</td></tr>
+		<tr><td>Completed Tests</td><td>{{ completed }}</td></tr>
+		<tr><td>Pending Tests</td><td>{{ pending }}</td></tr>
+		<tr><td>In-Progress Tests</td><td>{{ in_progress }}</td></tr>
+		<tr><td>Last Updated</td><td>{{ edit_date }}</td></tr>
+	</tbody>
+</table>
+</section>
+
+{% include 'tests.html' %}
+
+{% endblock content %}
