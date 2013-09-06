@@ -112,18 +112,31 @@ class CreateAlterTest( webapp2.RequestHandler ):
 
 class UserProfile( webapp2.RequestHandler ):
     
-    def get(self, in_entity=None):
+    def get(self, profile_to_get=None):
         template_values = get_template_values( self )
         user = users.get_current_user()
-        entity_query = Entity.query( Entity.id == user.user_id() ).fetch() 
-        test_query = Test.query( ancestor = ndb.Key('Entity', user.user_id() ) ).fetch(1)
-        
-        if len(entity_query) > 0:
-            template_values = add_entity_to_template(template_values, entity_query[0] )
-            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'profile.html' ) )
-            self.response.out.write( template.render( path, template_values ))
+        if user:
+            
+            if not profile_to_get or profile_to_get ==  user.user_id():
+                logging.info("Fetch this humanoid's profile! (%s)", user.user_id() )
+                entity_query = Entity.query( Entity.id == user.user_id() ).fetch() 
+            else:
+                logging.info("Fetch this humanoid's profile! (%s)", user.user_id() )
+                template_values = add_entity_to_template(template_values, user )
+                logging.info("Fetch profile for other humanoid! (%s)", profile_to_get )
+                entity_query = Entity.query( Entity.id == profile_to_get ).fetch()
+            
+            test_query = Test.query( ancestor = ndb.Key('Entity', entity_query[0].id ) ).fetch(1)
+            
+            if len(entity_query) > 0:
+                template_values = add_entity_to_template(template_values, entity_query[0] )
+                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'profile.html' ) )
+                self.response.out.write( template.render( path, template_values ))
+                return
         else:
             self.redirect('/')
+        logging.warning("OUT OF BOUNDS (%s)", profile_to_get )
+        self.redirect('/')
         return
             
 ## Look at all these glamorous MODELS
@@ -152,38 +165,27 @@ class Mark( ndb.Model ):
         - parent = user's Entity.Key
         - marker_entity = None
         - test = associated Test
+        - response = None
         - complete = False
         - mark = None
         - creation/timestamp of Now
         
-    When a User submits their answer:   ## Pending Stage
-        - complete = True
+    When a User submits their answer:                           ## Pending Stage
+        - response = the answer
         - marker_entity = Test.group
         
-    When a marker gives a mark:  ## Completed Stage
+    When a marker gives a mark:                                 ## Completed Stage
         - mark = the numeric mark for the user's response
+        - complete = True
     
     """
     marker_entity = ndb.StructuredProperty( Entity, indexed=False )
     test = ndb.StructuredProperty( Test, indexed=False )
+    response = ndb.StringProperty( indexed=False )
     complete = ndb.BooleanProperty( indexed=False )
     mark = ndb.IntegerProperty( indexed=False )
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
-    
-# class Review( ndb.Model ):
-    # review = ndb.TextProperty( indexed=True )
-    # rating = ndb.IntegerProperty( indexed=False )
-    # creation = ndb.DateTimeProperty( auto_now_add=True )
-    # timestamp = ndb.DateTimeProperty( auto_now =True )
-
-# class Message ( ndb.Model ):
-    # recipient = ndb.UserProperty( indexed=False )
-    # type = ndb.IntegerProperty( indexed=False )
-    # subject = ndb.StringProperty( indexed=True )
-    # message = ndb.TextProperty( indexed=True )
-    # creation = ndb.DateTimeProperty( auto_now_add=True )
-    # timestamp = ndb.DateTimeProperty( auto_now =True )       
 
 ## Helper Functions
 
@@ -212,7 +214,7 @@ def add_test_to_template( template_values, in_test ):
     template_values['group'] = in_test.group
     template_values['created'] = in_test.created
     template_values['modified'] = in_test.modified
-    
+
     return template_values
     
 def get_completed_tests( entity ):
@@ -224,13 +226,13 @@ def get_pending_tests( entity ):
 def get_in_progess_tests( entity ):
     pass    
 
-def get_created_tests( entity ):
+def get_created_tests( entity, num=None ):
     """Retrieves the tests that have been created by entity"""
     test_query = Test.query( ancestor = ndb.Key('Entity', entity.id) )
-    test_query = convert_datetime_to_string( test_query )
-    return test_query.fetch()
-    pass    
-
+    if not num:
+        return test_query.fetch()
+    else:
+        return test_query.fetch( num )
 
 def get_template_values( self ):
     """Constructs and returns a dict of common values needed by all or nearly all templates"""
@@ -271,7 +273,7 @@ app = webapp2.WSGIApplication( [
     ( '/login', LoginHandler ),
     ( '/c/([^/]+)', CreateAlterTest ),
     ( '/c', CreateAlterTest ),
-    #( '/u/([^/]+)', UserProfile ),
+    ( '/u/([^/]+)', UserProfile ),
     ( '/u', UserProfile ),
 ], debug = True)
 
