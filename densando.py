@@ -20,43 +20,53 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         template_values = get_template_values( self )
         
+        template_values['recent_tests'] = get_most_recent_tests(5)
+        print template_values['recent_tests']
+        
         path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'main.html' ) )
         self.response.out.write( template.render( path, template_values ))
         return
         
 class LoginHandler( webapp2.RequestHandler ):
-
+    logger = logging.getLogger("LoginHandler")
+    
     def get(self):
         template_values = get_template_values( self )
         user = users.get_current_user()
-        entity_query = Entity.query( Entity.id == user.user_id() ).fetch()
-        if len(entity_query) > 0:
-            entity = entity_query[0]
-            if not entity.display_name:
-                display_name = self.request.get( 'display_name' )
+        if user:
+            self.logger.info(user)
+            entity_query = Entity.query( Entity.id == user.user_id() ).fetch()
+            if len(entity_query) > 0:
+                entity = entity_query[0]
+                if not entity.display_name:
+                    display_name = self.request.get( 'display_name' )
+                else:
+                    display_name = entity.display_name
+                self.logger.info( "display name= %s", display_name )
+                if display_name:
+                    entity.display_name = display_name        
+                    entity.modified = datetime.datetime.now()
+                    entity.put()
+                else:
+                    path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
+                    self.response.out.write( template.render( path, template_values ))
+                    return
+                self.redirect('/')
             else:
-                display_name = entity.display_name
-            logging.debug( "display name= %s", display_name )
-            if display_name:
-                entity.display_name = display_name        
-                entity.modified = datetime.datetime.now()
+                # the entity for this user hasn't been created yet
+                self.logger.info( user )
+                entity = Entity(
+                    user = user,
+                    id = user.user_id(),
+                    created = datetime.datetime.now(),
+                )
+                self.logger.info( entity )
                 entity.put()
-            else:
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
                 self.response.out.write( template.render( path, template_values ))
-                return
-            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'main.html' ) )
-            self.response.out.write( template.render( path, template_values ))
         else:
-            # the entity for this user hasn't been created yet
-            entity = Entity(
-                user = user,
-                id = user.user_id(),
-                created = datetime.datetime.now(),
-            )
-            entity.put()
-            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
-            self.response.out.write( template.render( path, template_values ))
+            print user
+            self.redirect( users.create_login_url( '/login' ) )
         return
 
 class CreateAlterTest( webapp2.RequestHandler ):
@@ -99,6 +109,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
             test = Test( parent = ndb.Key('Entity', user.user_id() ) )
             test.created = datetime.datetime.now()
             
+        test.author_id = user.user_id()
         test.title = self.request.get( 'title' )
         test.description = self.request.get( 'description' )
         test.group = self.request.get( 'group' )   
@@ -106,7 +117,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
         test.put()
         
         logging.debug( "Test: %s", test )
-        self.redirect('/c/%s' % test.id )
+        self.redirect('/t/%s' % test.id )
         return
  
 
@@ -126,10 +137,11 @@ class UserProfile( webapp2.RequestHandler ):
                 logging.info("Fetch profile for other humanoid! (%s)", profile_to_get )
                 entity_query = Entity.query( Entity.id == profile_to_get ).fetch()
             
-            test_query = Test.query( ancestor = ndb.Key('Entity', entity_query[0].id ) ).fetch(1)
+            entity = entity_query[0]
+            test_query = Test.query( ancestor = ndb.Key('Entity', entity.id ) ).fetch(1)
             
             if len(entity_query) > 0:
-                template_values = add_entity_to_template(template_values, entity_query[0] )
+                template_values = add_entity_to_template(template_values, entity )
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'profile.html' ) )
                 self.response.out.write( template.render( path, template_values ))
                 return
@@ -137,6 +149,25 @@ class UserProfile( webapp2.RequestHandler ):
             self.redirect('/')
         logging.warning("OUT OF BOUNDS (%s)", profile_to_get )
         self.redirect('/')
+        return
+        
+        
+class TestView( webapp2.RequestHandler ):
+    
+    def get(self, test_to_get=None):
+        template_values = get_template_values( self )
+        user = users.get_current_user()
+        if user:
+            entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+            template_values = add_entity_to_template(template_values, entity )
+        if not test_to_get:
+            logging.info("No test was provided for lookup")
+            self.redirect('/u')
+        else:
+            test_query = Test.query( Test.id == test_to_get).fetch(1)
+            template_values = add_test_to_template( template_values, test_query[0] )
+            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'test_detail.html') )
+            self.response.out.write( template.render( path, template_values) )            
         return
             
 ## Look at all these glamorous MODELS
@@ -148,6 +179,7 @@ class Test( ndb.Model ):
     group = ndb.StringProperty( indexed=False )
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
+    author_id = ndb.StringProperty( indexed=True )
 
 class Entity( ndb.Model ):
     # About the user
@@ -197,11 +229,11 @@ def add_entity_to_template( template_values, in_entity ):
     template_values['created'] = in_entity.created
     template_values['modified'] = in_entity.modified
     template_values['bio'] = in_entity.bio
-    # These need to be computed
+    ## These need to be computed
     # template_values['completed'] = get_completed_tests( in_entity )
     # template_values['pending'] = get_pending_tests( in_entity )
     # template_values['in_prograss'] = get_in_progess_tests( in_entity )
-    template_values['created'] = get_created_tests( in_entity )
+    template_values['my_tests'] = get_created_tests( in_entity )
     
     return template_values
     
@@ -212,8 +244,9 @@ def add_test_to_template( template_values, in_test ):
     template_values['title'] = in_test.title
     template_values['description'] = in_test.description
     template_values['group'] = in_test.group
-    template_values['created'] = in_test.created
-    template_values['modified'] = in_test.modified
+    template_values['test_created'] = in_test.created
+    template_values['test_modified'] = in_test.modified
+    template_values['author_id'] = in_test.author_id
 
     return template_values
     
@@ -233,6 +266,17 @@ def get_created_tests( entity, num=None ):
         return test_query.fetch()
     else:
         return test_query.fetch( num )
+        
+def get_most_recent_tests( num=None ):
+    """Retrieves the num most recent test"""
+    test_query = Test.query().order( -Test.created )
+    if len(test_query.fetch()) > 0:
+        if not num:
+            return test_query.fetch()
+        else:
+            return test_query.fetch( num )
+    else:
+        return []
 
 def get_template_values( self ):
     """Constructs and returns a dict of common values needed by all or nearly all templates"""
@@ -261,10 +305,7 @@ def get_navigation_urls( self, user ):
     else:
         navigation_urls['login'] = users.create_login_url( '/login' )
     return navigation_urls
-    
-def convert_datetime_to_string( query_list ):
 
-    return query_list
     
     
 # Run Runaway!
@@ -275,6 +316,8 @@ app = webapp2.WSGIApplication( [
     ( '/c', CreateAlterTest ),
     ( '/u/([^/]+)', UserProfile ),
     ( '/u', UserProfile ),
+    ( '/t/([^/]+)', TestView ),
+    ( '/t', TestView ),
 ], debug = True)
 
 def main():

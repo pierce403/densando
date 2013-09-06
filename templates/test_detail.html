@@ -1,0 +1,19 @@
+{% extends 'footer.html' %}
+
+{% block content %}
+
+<header><h1>{{ title }}</h1></header>
+<aside>
+	<h2>{{ group }}</h2>
+	<h4>Last Created: {{ test_created }}</h4>
+	<h4>Last Modified: {{ test_modified }}</h4>
+	<h6>{{ test_id }}</h6>
+</aside>
+<p>{{ description }}</p>
+
+<form action="/t/{{ test_id }}" method="POST">
+<textarea id="response" name="response" {% if id == author_id %}disabled{% endif %}></textarea>
+<button type="submit" {% if id == author_id %}disabled{% endif %}>Submit Button</button>
+</form>
+
+{% endblock content %}

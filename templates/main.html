@@ -4,4 +4,11 @@
 <section>
 <p>this is the text.</p>
 </section>
+<section>
+<p>These are the tests</p>
+{% for test in recent_tests %}
+<section> 
+{% include "test.html" %}
+</section>
+{% endfor %}
 {% endblock content %}
