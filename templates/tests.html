@@ -1,8 +1,32 @@
-<header><h3>My Tests</h3></header>
-<aside><p>Highest Rank:</p></aside>
+{% if my_tests %}
+	<header><h3>My Tests</h3></header>
 
-{% for test in my_tests %}
-<section> 
-{% include "test.html" %}
-</section>
-{% endfor %}
+	{% for test in my_tests %}
+		<section> 
+		{% include "test.html" %}
+		</section>
+	{% endfor %}
+	
+	<header><h3>To be marked</h3></header>
+	{% for mark in to_be_marked %}
+		{% include "mark.html" %}
+	{% endfor %}
+{% endif %}
+
+{% if in_progress %}
+	<header><h3>In-Progress Tests</h3></header>
+	{% for test in in_progress %}
+		<section> 
+		{% include "test.html" %}
+		</section>
+	{% endfor %}
+{% endif %}
+
+{% if completed %}
+	<header><h3>Completed Tests</h3></header>
+	{% for test in completed %}
+		<section> 
+		{% include "test.html" %}
+		</section>
+	{% endfor %}
+{% endif %}

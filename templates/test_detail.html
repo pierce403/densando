@@ -11,9 +11,10 @@
 </aside>
 <p>{{ description }}</p>
 
-<form action="/t/{{ test_id }}" method="POST">
-<textarea id="response" name="response" {% if id == author_id %}disabled{% endif %}></textarea>
-<button type="submit" {% if id == author_id %}disabled{% endif %}>Submit Button</button>
+<form action="/t" method="POST">
+<input type="hidden" name="test_id" value="{{ test_id }}" />
+<input type="hidden" name="author_id" value="{{ author_id }}" />
+<textarea id="response" name="response" {% if id == author_id or locked %}disabled{% endif %}>{% if response %}{{ response }}{% endif %}</textarea>
+<button type="submit" {% if id == author_id or locked %}disabled{% endif %}>Submit Button</button>
 </form>
-
 {% endblock content %}

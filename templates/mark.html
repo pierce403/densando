@@ -1,0 +1,11 @@
+<section id="{{ mark.id }}">
+<h5>Marked by:<a href="/u/{{ mark.marker_entity.id }}">{{ mark.marker_entity.display_name }}</a><h5>
+
+<a href="/m/{{mark.id}}"><h3>{{ mark.test.title }}</h3></a>
+<p>{{ mark.response }}</p>
+
+<aside>
+    <span>Created on:</span><span>{{ mark.created }}</span><br/>
+    <span>Last edited:</span><span>{{ mark.modified }}</span>
+</aside>
+</section>

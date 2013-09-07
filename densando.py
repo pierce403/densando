@@ -44,7 +44,8 @@ class LoginHandler( webapp2.RequestHandler ):
                     display_name = entity.display_name
                 self.logger.info( "display name= %s", display_name )
                 if display_name:
-                    entity.display_name = display_name        
+                    entity.display_name = display_name
+                    entity.bio = self.request.get( 'bio' )
                     entity.modified = datetime.datetime.now()
                     entity.put()
                 else:
@@ -164,11 +165,45 @@ class TestView( webapp2.RequestHandler ):
             logging.info("No test was provided for lookup")
             self.redirect('/u')
         else:
-            test_query = Test.query( Test.id == test_to_get).fetch(1)
-            template_values = add_test_to_template( template_values, test_query[0] )
+            test = Test.query( Test.id == test_to_get).fetch(1)[0]
+            try:
+                mark = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) ).filter( Mark.test.id == test.id ).fetch(1)[0]
+                template_values['response'] = mark.response
+                if (datetime.datetime.now() - mark.modified) < datetime.timedelta(minutes=10):
+                    template_values['locked'] = True
+            except IndexError:
+                print "No mark found"
+            template_values = add_test_to_template( template_values, test )
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'test_detail.html') )
             self.response.out.write( template.render( path, template_values) )            
         return
+        
+    def post(self):
+        test_id = self.request.get( 'test_id' )
+        author_id = self.request.get( 'author_id' )
+        user = users.get_current_user()
+        if user:
+            test = Test.query( Test.id == test_id ).fetch()[0]
+            mark_query = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) )
+            mark_query = mark_query.filter( Mark.test.id == test.id )
+            try:
+                this_mark = mark_query.fetch()[0]
+            except IndexError:
+                this_mark = Mark( parent = ndb.Key("Entity", user.user_id() ) )
+                this_mark.test = test
+                this_mark.created = datetime.datetime.now()
+                this_mark.mark = None
+                
+            this_mark.response = self.request.get( 'response' )
+            this_mark.complete = False
+            this_mark.modified = datetime.datetime.now()
+            this_mark.marker_entity = Entity.query( Entity.id == author_id ).fetch()[0]
+            this_mark.id = str( test.put().id() )
+            this_mark.put()
+            
+        self.redirect( '/t/%s' % test_id )
+        return
+        
             
 ## Look at all these glamorous MODELS
         
@@ -176,7 +211,7 @@ class Test( ndb.Model ):
     id = ndb.StringProperty( indexed=True )
     title = ndb.StringProperty( indexed=True )
     description = ndb.TextProperty( indexed=True )
-    group = ndb.StringProperty( indexed=False )
+    group = ndb.StringProperty( indexed=False    )
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
     author_id = ndb.StringProperty( indexed=True )
@@ -195,14 +230,11 @@ class Mark( ndb.Model ):
     
     When a User/Entity starts a Test, a Mark is created with:   ## In-Progress Stage
         - parent = user's Entity.Key
-        - marker_entity = None
         - test = associated Test
         - response = None
         - complete = False
         - mark = None
-        - creation/timestamp of Now
-        
-    When a User submits their answer:                           ## Pending Stage
+        - created/modified of Now
         - response = the answer
         - marker_entity = Test.group
         
@@ -211,13 +243,14 @@ class Mark( ndb.Model ):
         - complete = True
     
     """
-    marker_entity = ndb.StructuredProperty( Entity, indexed=False )
-    test = ndb.StructuredProperty( Test, indexed=False )
+    marker_entity = ndb.StructuredProperty( Entity, indexed=True )
+    test = ndb.StructuredProperty( Test, indexed=True )
     response = ndb.StringProperty( indexed=False )
-    complete = ndb.BooleanProperty( indexed=False )
+    complete = ndb.BooleanProperty( indexed=True )
     mark = ndb.IntegerProperty( indexed=False )
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
+    id = ndb.StringProperty( indexed=True )
 
 ## Helper Functions
 
@@ -230,16 +263,16 @@ def add_entity_to_template( template_values, in_entity ):
     template_values['modified'] = in_entity.modified
     template_values['bio'] = in_entity.bio
     ## These need to be computed
-    # template_values['completed'] = get_completed_tests( in_entity )
-    # template_values['pending'] = get_pending_tests( in_entity )
-    # template_values['in_prograss'] = get_in_progess_tests( in_entity )
+    template_values['completed'] = get_completed_tests( in_entity )
+    template_values['in_progress'] = get_in_progess_tests( in_entity )
     template_values['my_tests'] = get_created_tests( in_entity )
+    template_values['to_be_marked'] = get_to_be_marked( in_entity )
     
     return template_values
     
 def add_test_to_template( template_values, in_test ):
     """Combines Test object properties into template_values"""
-    logging.info( in_test )
+    #logging.info( in_test )
     template_values['test_id'] = in_test.id
     template_values['title'] = in_test.title
     template_values['description'] = in_test.description
@@ -250,14 +283,21 @@ def add_test_to_template( template_values, in_test ):
 
     return template_values
     
-def get_completed_tests( entity ):
-    pass    
+def get_completed_tests( entity, num=None ):
+    mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
+    mark_query = mark_query.filter( Mark.complete == True )
+    if not num:
+        return [mark.test for mark in mark_query.fetch()]
+    else:
+        return mark_query.fetch( num )    
     
-def get_pending_tests( entity ):
-    pass
-    
-def get_in_progess_tests( entity ):
-    pass    
+def get_in_progess_tests( entity, num=None ):
+    mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
+    mark_query = mark_query.filter( Mark.complete == False )
+    if not num:
+        return [mark.test for mark in mark_query.fetch()]
+    else:
+        return mark_query.fetch( num )  
 
 def get_created_tests( entity, num=None ):
     """Retrieves the tests that have been created by entity"""
@@ -278,6 +318,14 @@ def get_most_recent_tests( num=None ):
     else:
         return []
 
+def get_to_be_marked( entity, num=None ):
+    """Retrieves the responses from other entitis that need to have marks assigned for tests created by this entity"""
+    mark_query = Mark.query( Mark.marker_entity.id == entity.id )
+    if not num:
+        return mark_query.fetch()
+    else:
+        return mark_query.fetch( num )
+        
 def get_template_values( self ):
     """Constructs and returns a dict of common values needed by all or nearly all templates"""
     user = users.get_current_user()
