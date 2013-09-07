@@ -7,10 +7,9 @@
 		</section>
 	{% endfor %}
 	
-	<header><h3>To be marked</h3></header>
-	{% for mark in to_be_marked %}
-		{% include "mark.html" %}
-	{% endfor %}
+	{% if to_be_marked %}
+	<a href="/m/{{ id }}">You have {{ to_be_marked_cnt }} answer{{ to_be_marked_cnt|pluralize }} waiting to be marked</a>
+	{% endif %}
 {% endif %}
 
 {% if in_progress %}

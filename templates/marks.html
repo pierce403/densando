@@ -1,0 +1,18 @@
+{% extends 'footer.html' %}
+
+{% block content %}
+
+{% if completed %}
+	
+{% endif %}
+
+{% if to_be_marked %}
+	<header><h3>Responses Waiting for Marking</h3></header>
+	{% for mark in to_be_marked %}
+		<section> 
+		{% include "mark.html" %}
+		</section>
+	{% endfor %}
+{% endif %}
+
+{% endblock content %}

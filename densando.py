@@ -133,13 +133,13 @@ class UserProfile( webapp2.RequestHandler ):
                 logging.info("Fetch this humanoid's profile! (%s)", user.user_id() )
                 entity_query = Entity.query( Entity.id == user.user_id() ).fetch() 
             else:
-                logging.info("Fetch this humanoid's profile! (%s)", user.user_id() )
-                template_values = add_entity_to_template(template_values, user )
+                logging.info("Fetch this humanoid's info! (%s)", user.user_id() )
+                #template_values = add_entity_to_template(template_values, user )
                 logging.info("Fetch profile for other humanoid! (%s)", profile_to_get )
                 entity_query = Entity.query( Entity.id == profile_to_get ).fetch()
             
             entity = entity_query[0]
-            test_query = Test.query( ancestor = ndb.Key('Entity', entity.id ) ).fetch(1)
+            #test_query = Test.query( ancestor = ndb.Key('Entity', entity.id ) ).fetch(1)
             
             if len(entity_query) > 0:
                 template_values = add_entity_to_template(template_values, entity )
@@ -204,6 +204,35 @@ class TestView( webapp2.RequestHandler ):
         self.redirect( '/t/%s' % test_id )
         return
         
+        
+class MarkView( webapp2.RequestHandler ):
+    
+    def get(self, mark_or_user=None):
+    
+        template_values = get_template_values( self )
+        user = users.get_current_user()
+    
+        if mark_or_user:
+            try:
+                entity = Entity.query( Entity.id == mark_or_user ).fetch(1)[0] 
+                template_values = add_entity_to_template( template_values, entity )
+                template_values['current_user'] = user.user_id()
+            except IndexError:
+                try:
+                    mark = Mark.query( Mark.id == mark_or_user ).fetch(1)[0]
+                    template_values = add_mark_to_template( template_values, mark )
+                except:
+                    raise
+                else:
+                    path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'mark_detail.html') )
+                    self.response.out.write( template.render( path, template_values) )
+                    print mark
+            else:
+                # Parameter was a user.id, so load the master page
+                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'marks.html') )
+                self.response.out.write( template.render( path, template_values) )
+                
+        return       
             
 ## Look at all these glamorous MODELS
         
@@ -226,23 +255,6 @@ class Entity( ndb.Model ):
     bio = ndb.TextProperty( indexed=False )
 
 class Mark( ndb.Model ):
-    """Controls lots of things
-    
-    When a User/Entity starts a Test, a Mark is created with:   ## In-Progress Stage
-        - parent = user's Entity.Key
-        - test = associated Test
-        - response = None
-        - complete = False
-        - mark = None
-        - created/modified of Now
-        - response = the answer
-        - marker_entity = Test.group
-        
-    When a marker gives a mark:                                 ## Completed Stage
-        - mark = the numeric mark for the user's response
-        - complete = True
-    
-    """
     marker_entity = ndb.StructuredProperty( Entity, indexed=True )
     test = ndb.StructuredProperty( Test, indexed=True )
     response = ndb.StringProperty( indexed=False )
@@ -254,6 +266,18 @@ class Mark( ndb.Model ):
 
 ## Helper Functions
 
+def add_mark_to_template( template_values, in_mark ):
+    """Combines Mark object properties into template_values"""
+    logging.info(in_mark)
+    template_values = add_entity_to_template( template_values, in_mark.marker_entity )
+    template_values = add_test_to_template( template_values, in_mark.test )
+    template_values['complete'] = in_mark.complete
+    template_values['mark'] = in_mark.mark
+    template_values['mark_id'] = in_mark.id
+    template_values['mark_created'] = in_mark.created
+    template_values['mark_modified'] = in_mark.modified
+    return template_values
+    
 def add_entity_to_template( template_values, in_entity ):
     """Combines Entity object properties into template_values"""
     logging.debug( in_entity )
@@ -262,11 +286,16 @@ def add_entity_to_template( template_values, in_entity ):
     template_values['created'] = in_entity.created
     template_values['modified'] = in_entity.modified
     template_values['bio'] = in_entity.bio
-    ## These need to be computed
+    ## Lists of Tests
     template_values['completed'] = get_completed_tests( in_entity )
+    template_values['completed_cnt'] = len( template_values['completed'] )
     template_values['in_progress'] = get_in_progess_tests( in_entity )
+    template_values['in_progress_cnt'] = len( template_values['in_progress'] )
     template_values['my_tests'] = get_created_tests( in_entity )
+    template_values['my_tests_cnt'] = len( template_values['my_tests'] )
+    ## Lists of Marks
     template_values['to_be_marked'] = get_to_be_marked( in_entity )
+    template_values['to_be_marked_cnt'] = len( template_values['to_be_marked'] )
     
     return template_values
     
@@ -282,7 +311,7 @@ def add_test_to_template( template_values, in_test ):
     template_values['author_id'] = in_test.author_id
 
     return template_values
-    
+
 def get_completed_tests( entity, num=None ):
     mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
     mark_query = mark_query.filter( Mark.complete == True )
@@ -321,6 +350,16 @@ def get_most_recent_tests( num=None ):
 def get_to_be_marked( entity, num=None ):
     """Retrieves the responses from other entitis that need to have marks assigned for tests created by this entity"""
     mark_query = Mark.query( Mark.marker_entity.id == entity.id )
+    mark_query = mark_query.filter( Mark.complete == False )
+    if not num:
+        return mark_query.fetch()
+    else:
+        return mark_query.fetch( num )
+        
+def get_marked( entity, num=None ):
+    """Retrieves the responses from other entitis that need to have marks assigned for tests created by this entity"""
+    mark_query = Mark.query( Mark.marker_entity.id == entity.id )
+    mark_query = mark_query.filter( Mark.complete == True )
     if not num:
         return mark_query.fetch()
     else:
@@ -366,6 +405,8 @@ app = webapp2.WSGIApplication( [
     ( '/u', UserProfile ),
     ( '/t/([^/]+)', TestView ),
     ( '/t', TestView ),
+    ( '/m/([^/]+)', MarkView ),
+    ( '/m', MarkView ),
 ], debug = True)
 
 def main():
