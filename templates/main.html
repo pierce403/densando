@@ -2,13 +2,12 @@
 
 {% block content %}
 <section>
-<p>this is the text.</p>
+<p>Hi, Welcome to Densando.  Your work is your reward.</p>
 </section>
 <section>
-<p>These are the tests</p>
 {% for test in recent_tests %}
-<section> 
-{% include "test.html" %}
-</section>
+	<div class="front-page-test test-preview"> 
+		{% include "test.html" %}
+	</div>
 {% endfor %}
 {% endblock content %}

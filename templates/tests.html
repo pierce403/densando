@@ -1,31 +1,38 @@
 {% if my_tests %}
-	<header><h3>My Tests</h3></header>
+<section class="col_6" >
+	<header><h3>My Tests</h3>
+		{% if to_be_marked %}
+			<a href="/m/{{ id }}">You have {{ to_be_marked_cnt }} answer{{ to_be_marked_cnt|pluralize }} waiting to be marked</a>
+		{% endif %}
+	</header>
 
 	{% for test in my_tests %}
-		<section> 
+		<div class="test-preview"> 
 		{% include "test.html" %}
-		</section>
+		</div>
 	{% endfor %}
-	
-	{% if to_be_marked %}
-	<a href="/m/{{ id }}">You have {{ to_be_marked_cnt }} answer{{ to_be_marked_cnt|pluralize }} waiting to be marked</a>
-	{% endif %}
+</section>
 {% endif %}
 
 {% if in_progress %}
+<section class="col_6" >
 	<header><h3>In-Progress Tests</h3></header>
 	{% for test in in_progress %}
-		<section> 
+	<div class="test-preview"> 
 		{% include "test.html" %}
-		</section>
+	</div>
 	{% endfor %}
+</section>
 {% endif %}
 
 {% if completed %}
+<section class="col_6" >
 	<header><h3>Completed Tests</h3></header>
 	{% for test in completed %}
-		<section> 
+		<section class="test-preview"> 
 		{% include "test.html" %}
+		<a href="/m/{{ test.id }}">View mark</a>
 		</section>
 	{% endfor %}
+</section>
 {% endif %}

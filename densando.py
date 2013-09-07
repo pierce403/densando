@@ -4,6 +4,7 @@ import datetime
 import os
 import logging
 import hashlib
+import urlparse
 # Imports from GAE
 from google.appengine.ext.webapp import template
 from google.appengine.api import users
@@ -21,7 +22,6 @@ class MainPage(webapp2.RequestHandler):
         template_values = get_template_values( self )
         
         template_values['recent_tests'] = get_most_recent_tests(5)
-        print template_values['recent_tests']
         
         path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'main.html' ) )
         self.response.out.write( template.render( path, template_values ))
@@ -66,7 +66,6 @@ class LoginHandler( webapp2.RequestHandler ):
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
                 self.response.out.write( template.render( path, template_values ))
         else:
-            print user
             self.redirect( users.create_login_url( '/login' ) )
         return
 
@@ -158,24 +157,48 @@ class TestView( webapp2.RequestHandler ):
     def get(self, test_to_get=None):
         template_values = get_template_values( self )
         user = users.get_current_user()
-        if user:
-            entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
-            template_values = add_entity_to_template(template_values, entity )
+
         if not test_to_get:
             logging.info("No test was provided for lookup")
-            self.redirect('/u')
+            self.redirect('/')
+            return
         else:
-            test = Test.query( Test.id == test_to_get).fetch(1)[0]
             try:
-                mark = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) ).filter( Mark.test.id == test.id ).fetch(1)[0]
-                template_values['response'] = mark.response
-                if (datetime.datetime.now() - mark.modified) < datetime.timedelta(minutes=10):
-                    template_values['locked'] = True
+                test = Test.query( Test.id == test_to_get).fetch(1)[0]
             except IndexError:
-                print "No mark found"
-            template_values = add_test_to_template( template_values, test )
-            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'test_detail.html') )
-            self.response.out.write( template.render( path, template_values) )            
+                logging.info("Invalid Test ID")
+                self.redirect('/')
+            else:
+                if user:
+                    try:
+                        mark_query = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) )
+                        mark = mark_query.filter( Mark.test.id == test.id ).fetch(1)[0]
+                        template_values = add_mark_to_template( template_values, mark )
+                        if (datetime.datetime.now() - mark.modified) < datetime.timedelta(minutes=10):
+                            template_values['locked'] = True
+                    except IndexError:
+                        logging.info( "No mark found" )
+                        template_values = add_test_to_template( template_values, test )
+                    finally:    
+                        if test.author_id == user.user_id() and mark_query:
+                            template_values['is_test_marker'] = True
+                            test_marker = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+                            template_values['to_be_marked'] = get_to_be_marked( test_marker, test )
+                            print template_values['to_be_marked']
+                            template_values['name'] = test_marker.display_name
+                
+                else: 
+                    template_values['locked'] = True
+                    logging.warning("User not found!")
+                    template_values = add_test_to_template( template_values, test )
+                    
+                    
+            finally:
+                template_values['current_user'] = user.user_id()
+                for key, value in template_values.items():
+                    print "%-20s : %s" % (key, value)
+                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'test_detail.html') )
+                self.response.out.write( template.render( path, template_values) )            
         return
         
     def post(self):
@@ -198,8 +221,11 @@ class TestView( webapp2.RequestHandler ):
             this_mark.complete = False
             this_mark.modified = datetime.datetime.now()
             this_mark.marker_entity = Entity.query( Entity.id == author_id ).fetch()[0]
-            this_mark.id = str( test.put().id() )
+            this_mark.id = this_mark.test.id + user.user_id()
             this_mark.put()
+            
+            test.mark_id = this_mark.id
+            test.put()
             
         self.redirect( '/t/%s' % test_id )
         return
@@ -207,32 +233,72 @@ class TestView( webapp2.RequestHandler ):
         
 class MarkView( webapp2.RequestHandler ):
     
-    def get(self, mark_or_user=None):
+    # def get(self, mark_or_user=None):
     
-        template_values = get_template_values( self )
+        # template_values = get_template_values( self )
+        # user = users.get_current_user()
+    
+        # if mark_or_user:
+            # try:
+                # entity = Entity.query( Entity.id == mark_or_user ).fetch(1)[0] 
+                # template_values = add_entity_to_template( template_values, entity )
+                # template_values['current_user'] = user.user_id()
+            # except IndexError:
+                # try:
+                    # mark = Mark.query( Mark.id == mark_or_user ).fetch(1)[0]
+                    # template_values = add_mark_to_template( template_values, mark )
+                # except:
+                    # ## if it's not a mark or an entityid, maybe it's half?
+                    # mark = Mark.query( Mark.id == mark_or_user + user.user_id() ).fetch(1)[0]           
+                    # template_values = add_mark_to_template( template_values, mark )
+                # finally:
+                    # path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'mark_detail.html') )
+                    # self.response.out.write( template.render( path, template_values) )
+                    
+            # else:
+                # # Parameter was a user.id, so load the master page
+                # path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'marks.html') )
+                # self.response.out.write( template.render( path, template_values) )
+        # else:
+            # try:
+                # entity = Entity.query( Entity.id == user.user_id() ).fetch(1)[0] 
+                # template_values = add_entity_to_template( template_values, entity )
+                # template_values['current_user'] = user.user_id()
+            # except:
+                # raise
+            # else:
+                # path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'marks.html') )
+                # self.response.out.write( template.render( path, template_values) )
+        # return       
+        
+    def post( self, in_test_id ):
+        path = urlparse.urlsplit(self.request.referrer).path
         user = users.get_current_user()
-    
-        if mark_or_user:
-            try:
-                entity = Entity.query( Entity.id == mark_or_user ).fetch(1)[0] 
-                template_values = add_entity_to_template( template_values, entity )
-                template_values['current_user'] = user.user_id()
-            except IndexError:
-                try:
-                    mark = Mark.query( Mark.id == mark_or_user ).fetch(1)[0]
-                    template_values = add_mark_to_template( template_values, mark )
-                except:
-                    raise
-                else:
-                    path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'mark_detail.html') )
-                    self.response.out.write( template.render( path, template_values) )
-                    print mark
-            else:
-                # Parameter was a user.id, so load the master page
-                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'marks.html') )
-                self.response.out.write( template.render( path, template_values) )
-                
-        return       
+        author_id = self.request.get("author_id")
+        test_id = self.request.get("test_id")
+        comment = self.request.get("comment")
+        response = self.request.get("response")
+        mark = self.request.get("mark")
+        
+        author_entity = Entity.query( Entity.id == author_id ).fetch(1)[0]
+        user_entity = Entity.query( Entity.id == user.user_id() ).fetch(1)[0]
+        test_entity = Test.query( Test.id == test_id ).fetch(1)[0]
+        
+        mark_entity = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) ).filter( Mark.test.id == test_entity.id).fetch(1)[0]
+        mark_entity.marker_entity = author_entity
+        mark_entity.test = test_entity
+        mark_entity.response = response
+        mark_entity.comment = comment
+        mark_entity.mark = int(mark)
+        mark_entity.modified = datetime.datetime.now()
+        mark_entity.id = test_id + user.user_id()
+        mark_entity.complete = True
+        mark_entity.put()
+        self.redirect( path )
+        return
+        
+        
+        
             
 ## Look at all these glamorous MODELS
         
@@ -258,6 +324,7 @@ class Mark( ndb.Model ):
     marker_entity = ndb.StructuredProperty( Entity, indexed=True )
     test = ndb.StructuredProperty( Test, indexed=True )
     response = ndb.StringProperty( indexed=False )
+    comment = ndb.StringProperty( indexed=False )
     complete = ndb.BooleanProperty( indexed=True )
     mark = ndb.IntegerProperty( indexed=False )
     created = ndb.DateTimeProperty( )
@@ -272,6 +339,8 @@ def add_mark_to_template( template_values, in_mark ):
     template_values = add_entity_to_template( template_values, in_mark.marker_entity )
     template_values = add_test_to_template( template_values, in_mark.test )
     template_values['complete'] = in_mark.complete
+    template_values['response'] = in_mark.response
+    template_values['comment'] = in_mark.comment
     template_values['mark'] = in_mark.mark
     template_values['mark_id'] = in_mark.id
     template_values['mark_created'] = in_mark.created
@@ -295,7 +364,7 @@ def add_entity_to_template( template_values, in_entity ):
     template_values['my_tests_cnt'] = len( template_values['my_tests'] )
     ## Lists of Marks
     template_values['to_be_marked'] = get_to_be_marked( in_entity )
-    template_values['to_be_marked_cnt'] = len( template_values['to_be_marked'] )
+    template_values['to_be_marked_cnt'] = len( template_values['to_be_marked'] ) 
     
     return template_values
     
@@ -347,10 +416,13 @@ def get_most_recent_tests( num=None ):
     else:
         return []
 
-def get_to_be_marked( entity, num=None ):
-    """Retrieves the responses from other entitis that need to have marks assigned for tests created by this entity"""
+def get_to_be_marked( entity, test=None, num=None ):
+    """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
     mark_query = Mark.query( Mark.marker_entity.id == entity.id )
     mark_query = mark_query.filter( Mark.complete == False )
+    if test:
+        mark_query = mark_query.filter( Mark.test.id == test.id ) 
+    
     if not num:
         return mark_query.fetch()
     else:

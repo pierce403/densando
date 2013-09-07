@@ -11,14 +11,14 @@ handlers:
 - url: /_ah/login_required   ## Not necessary?  Keeping as reference for now
   script: do_openid_login.py ## as it might be required for OpenID
 
-#- url: /css
-#  static_dir: www/css
+- url: /css
+  static_dir: templates/css
 
-#- url: /js
-#  static_dir: www/js
+- url: /js
+  static_dir: templates/js
 
-#- url: /img
-#  static_dir: www/img
+- url: /img
+  static_dir: templates/img
 
 #- url: /favicon.ico
 #  static_files: www/favicon.ico

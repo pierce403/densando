@@ -1,9 +1,7 @@
-<section id="{{ test.id }}">
-<h5>{{ test.group }}<h5>
-<a href="/t/{{test.id}}"><h3>{{ test.title }}</h3></a>
-<p>{{ test.description }}</p>
-<aside>
-    <span>Created on:</span><span>{{ test.created }}</span><br/>
-    <span>Last edited:</span><span>{{ test.modified }}</span>
-</aside>
-</section>
+<a href="/t/{{test.id}}">
+	<p style="float:right;">{{ test.group }}<p>
+	<h5>{{ test.title }}</h5>
+	<p>{{ test.description|slice:":50" }}</p>
+	<p><span>Created on: </span><span>{{ test.created }}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<span>Last edited: </span><span>{{ test.modified }}</span></p>
+</a>

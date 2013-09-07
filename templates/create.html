@@ -2,18 +2,33 @@
 
 {% block content %}
 {% if test_id %}
-<h1>{{ test_id }}</h1>
+<h1>{{ title }}</h1>
 {% endif %}
 
 
 <form action="/c" method="post">
-<input id="title" type="text" name="title"></input>
-<input id="id" type="hidden" name="id"></input>
-<select id="group" name="group">
+
+<label for="title">Test Title</label><br/>
+<input id="title" type="text" name="title" required></input>
+
+<br/>
+
+<label for="group">Group</label><br/>
+<select id="group" name="group" required>
+    <option value=""></option>
     <option value="python">Python</option>
     <option value="javascript">JavaScript</option>
 </select>
-<textarea id="description" name="description"></textarea>
+
+<br/>
+<br/>
+
+<label for="description">What is is that needs to be completed?</label><br/>
+<textarea id="description" name="description" required></textarea>
+
+<br/>
+<br/>
+
 <button type="submit">Submit Button</button>
 </form>
 

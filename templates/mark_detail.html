@@ -1,45 +1,32 @@
-{% extends 'footer.html' %}
+<form action="/m/{{test_id}}" method="POST">
+	<input type="hidden" name="author_id" value="{{ user_id }}">
+	<input type="hidden" name="test_id" value="{{ test_id }}">
+	<input type="hidden" name="testee_id" value="{{  }}">
+	
+	<fieldset class="mark-detail">
+	<legend>{{ title }}</legend>
+	<label for="response">Response</label><br/>
+	<textarea name="response" disabled>{{ mark.response }}</textarea>
+	
+	<label for="comment">Comments</label>
+	<textarea name="comment"></textarea>
+	
+	<label for="mark">Mark</label>
+	<select name="mark" required>
+		<option value=""></option>
+		<option value="0">0</option>
+		<option value="1">1</option>
+		<option value="2">2</option>
+		<option value="3">3</option>
+		<option value="4">4</option>
+		<option value="5">5</option>
+		<option value="6">6</option>
+		<option value="7">7</option>
+		<option value="8">8</option>
+		<option value="9">9</option>
+		<option value="10">10</option>
+	</select>
 
-{% block content %}
-
-<header><h1>{{ title }}</h1></header>
-<aside>
-	<h2>{{ group }}</h2>
-	<h4>Last Created: {{ test_created }}</h4>
-	<h4>Last Modified: {{ test_modified }}</h4>
-	<h6>{{ test_id }}</h6>
-</aside>
-<p>{{ description }}</p>
-
-<div>
-{% if mark.marker_entity.id == current_user %}
-	<form action="/m/{{ mark.id }}" method="POST">
-		<textarea name="comments"></textarea>
-		<input name="{{ mark.id }}_slider" type="range" min="0.0" max="10.0" default="7.5"></input>
-		<button type="submit">Submit</button>
-	</form>
-{% else %}
-	<h5>Marked by:<a href="/u/{{ mark.marker_entity.id }}">{{ mark.marker_entity.display_name }}</a></h5>
-{% endif %}	
-</div>
-<h2>All Values</h2>
-<h4>Mark:</h4>
-<p>Mark ID : {{ mark_id }}</p>
-<p>Complete: {{ complete }}</p>
-<p>Mark    : {{ mark }}</p>
-<p>Mark Cre: {{ mark_created }}</p>
-<p>Mark Mod: {{ mark_modified }}</p>
-<h4>Test:</h4>
-<p>Test ID : {{ test_id }}</p>
-<p>Title   : {{ title }}</p>
-<p>Contents: {{ description }}</p>
-<p>Group   : {{ group }}</p>
-<p>Test Cre: {{ test_created }}</p>
-<p>Test Mod: {{ test_modified }}</p>
-<h4>Entity</h4>
-<p>Test Mod: {{ name }}</p>
-
-
-
-
-{% endblock content %}
+	<button type="submit">Submit</button>
+	</fieldset>
+</form>

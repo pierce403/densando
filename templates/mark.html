@@ -1,12 +1,11 @@
-<section id="{{ mark.id }}">
+<section id="{{ mark_id }}">
 
-
-<a href="/m/{{mark.id}}"><h3>{{ mark.test.title }}</h3></a>
-<p>{{ mark.response }}</p>
+<h2>Score: {{ mark.mark }}</h2>
+<p>Comment:<br/>{{ comment }}</p>
 
 <aside>
-    <span>Created on:</span><span>{{ mark.created }}</span><br/>
-    <span>Last edited:</span><span>{{ mark.modified }}</span>
+    <span>Created on:</span><span>{{ mark_created }}</span><br/>
+    <span>Last edited:</span><span>{{ mark_modified }}</span>
 </aside>
 
 

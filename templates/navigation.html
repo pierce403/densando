@@ -1,20 +1,18 @@
 {% extends 'header.html' %}
 
 {% block navigation %}
-
-<nav>
-<ul>
-{% if user %}
-	<h2>{{ user }}:{{ user_id }}</h2>
-{% endif %}
-    <li><a href="{{ nav_urls.home }}">Home</a></li>	
-{% if user %}
-    <li><a href="{{ nav_urls.profile }}">My Tests</a></li>
-	<li><a href="{{ nav_urls.create_test }}">Create New Test</a></li>
-    <li><a href="{{ nav_urls.logout }}">Logout</a></li>
-{% else %}
-    <li><a href="{{ nav_urls.login }}">Login</a></li>
-{% endif %}
+<ul class="menu">
+	<li class="current"><a href="{{ nav_urls.home }}">Home</a></li>
+	<li><a href=""><i class="icon-list"></i> Tests</a>
+	{% if user %}
+		<ul>
+			<li><a href="{{ nav_urls.profile }}"><i class="icon-cog"></i> My Tests</a></li>
+			<li><a href="{{ nav_urls.create_test }}"><i class="icon-cog"></i> Create New Test</a></li>
+		</ul></li>
+		<li ><a href="{{ nav_urls.logout }}"><i class="icon-trash"></i> Logout</a></li>
+	{% else %}
+		<li ><a href="{{ nav_urls.login }}"><i class="icon-trash"></i> Login</a></li>
+	{% endif %}
 </ul>
-</nav>
+
 {% endblock navigation %}
