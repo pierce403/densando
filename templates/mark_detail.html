@@ -1,7 +1,7 @@
 <form action="/m/{{test_id}}" method="POST">
 	<input type="hidden" name="author_id" value="{{ user_id }}">
 	<input type="hidden" name="test_id" value="{{ test_id }}">
-	<input type="hidden" name="testee_id" value="{{  }}">
+	<input type="hidden" name="testee_id" value="{{ mark.key.id }}">
 	
 	<fieldset class="mark-detail">
 	<legend>{{ title }}</legend>
@@ -28,5 +28,5 @@
 	</select>
 
 	<button type="submit">Submit</button>
-	</fieldset>
+	</fieldset> 
 </form>

@@ -22,7 +22,7 @@
 	{% else %}{% if response %}{{ response }}{% endif %}{% endif %}</textarea>
 	
 	
-	<button type="submit" {% if id == author_id or locked %}disabled{% endif %}>Submit Button</button>
+	<button type="submit" {% if current_user == author_id or locked %}disabled{% endif %}>Submit Button</button>
 	</form>
 </section>
 
@@ -35,9 +35,13 @@
 	
 	{% if to_be_marked %}
 		<header><h3>{{ to_be_marked_cnt }} Responses Waiting for Marking...</h3></header>
+		<p> {{ to_be_marked|length }} </p>
 		{% for mark in to_be_marked %}
-			<section>{% include "mark_detail.html" %}</section>
+			<div>
+			{% include "mark_detail.html" %}
+			</div>
 		{% endfor %}
+		
 	{% endif %}
 	</section>
 

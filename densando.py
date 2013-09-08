@@ -180,12 +180,13 @@ class TestView( webapp2.RequestHandler ):
                         logging.info( "No mark found" )
                         template_values = add_test_to_template( template_values, test )
                     finally:    
-                        if test.author_id == user.user_id() and mark_query:
+                        if test.author_id == user.user_id():
                             template_values['is_test_marker'] = True
                             test_marker = Entity.query( Entity.id == user.user_id() ).fetch()[0]
                             template_values['to_be_marked'] = get_to_be_marked( test_marker, test )
-                            print template_values['to_be_marked']
                             template_values['name'] = test_marker.display_name
+                            template_values['current_user'] = user.user_id()
+                            logging.info( "test.author_id == user.user_id()" )
                 
                 else: 
                     template_values['locked'] = True
@@ -194,9 +195,7 @@ class TestView( webapp2.RequestHandler ):
                     
                     
             finally:
-                template_values['current_user'] = user.user_id()
-                for key, value in template_values.items():
-                    print "%-20s : %s" % (key, value)
+            
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'test_detail.html') )
                 self.response.out.write( template.render( path, template_values) )            
         return
@@ -221,12 +220,9 @@ class TestView( webapp2.RequestHandler ):
             this_mark.complete = False
             this_mark.modified = datetime.datetime.now()
             this_mark.marker_entity = Entity.query( Entity.id == author_id ).fetch()[0]
-            this_mark.id = this_mark.test.id + user.user_id()
+            this_mark.taker_entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
             this_mark.put()
-            
-            test.mark_id = this_mark.id
-            test.put()
-            
+
         self.redirect( '/t/%s' % test_id )
         return
         
@@ -276,6 +272,7 @@ class MarkView( webapp2.RequestHandler ):
         user = users.get_current_user()
         author_id = self.request.get("author_id")
         test_id = self.request.get("test_id")
+        testee_id = self.request.get("testee_id")
         comment = self.request.get("comment")
         response = self.request.get("response")
         mark = self.request.get("mark")
@@ -284,7 +281,29 @@ class MarkView( webapp2.RequestHandler ):
         user_entity = Entity.query( Entity.id == user.user_id() ).fetch(1)[0]
         test_entity = Test.query( Test.id == test_id ).fetch(1)[0]
         
-        mark_entity = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) ).filter( Mark.test.id == test_entity.id).fetch(1)[0]
+        print "***********************"
+        print path
+        print user
+        print author_id
+        print test_id
+        print testee_id
+        print comment
+        print response
+        print mark
+        print author_entity
+        print user_entity
+        print test_entity
+        print "***********************"
+        
+        logger = logging.getLogger("TestLogger")
+        print Mark.query( Mark.test.id == test_id ).fetch()
+        print testee_id
+        
+        
+        mark_query = Mark.query( Mark.test.id == test_entity.id ).filter( )
+      
+        mark_entity = mark_query.fetch(1)[0]
+        
         mark_entity.marker_entity = author_entity
         mark_entity.test = test_entity
         mark_entity.response = response
@@ -322,6 +341,7 @@ class Entity( ndb.Model ):
 
 class Mark( ndb.Model ):
     marker_entity = ndb.StructuredProperty( Entity, indexed=True )
+    taker_entity = ndb.StructuredProperty( Entity, indexed=True )
     test = ndb.StructuredProperty( Test, indexed=True )
     response = ndb.StringProperty( indexed=False )
     comment = ndb.StringProperty( indexed=False )
