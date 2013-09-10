@@ -173,3 +173,7 @@ textarea{
     width:100%;
     height:120px;
 }
+
+.new-to-be-marked {
+    border:#00DD22 dashed 5px;
+}

@@ -1,13 +1,11 @@
 {% if my_tests %}
 <section class="col_6" >
 	<header><h3>My Tests</h3>
-		{% if to_be_marked %}
-			<a href="/m/{{ id }}">You have {{ to_be_marked_cnt }} answer{{ to_be_marked_cnt|pluralize }} waiting to be marked</a>
-		{% endif %}
+		
 	</header>
 
 	{% for test in my_tests %}
-		<div class="test-preview"> 
+		<div class="test-preview{% for mark in to_be_marked %}{% ifequal mark.test.id test.id %} new-to-be-marked{% endifequal %}{% endfor %}"> 
 		{% include "test.html" %}
 		</div>
 	{% endfor %}

@@ -170,6 +170,7 @@ class TestView( webapp2.RequestHandler ):
                 self.redirect('/')
             else:
                 if user:
+                    template_values = add_entity_to_template( template_values, Entity.query( Entity.id == user.user_id() ).fetch(1)[0] )
                     try:
                         mark_query = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) )
                         mark = mark_query.filter( Mark.test.id == test.id ).fetch(1)[0]
@@ -219,6 +220,7 @@ class TestView( webapp2.RequestHandler ):
             this_mark.response = self.request.get( 'response' )
             this_mark.complete = False
             this_mark.modified = datetime.datetime.now()
+            this_mark.id = test_id + user.user_id()
             this_mark.marker_entity = Entity.query( Entity.id == author_id ).fetch()[0]
             this_mark.taker_entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
             this_mark.put()
@@ -272,37 +274,34 @@ class MarkView( webapp2.RequestHandler ):
         user = users.get_current_user()
         author_id = self.request.get("author_id")
         test_id = self.request.get("test_id")
-        testee_id = self.request.get("testee_id")
+        mark_id = self.request.get("mark_id")
         comment = self.request.get("comment")
         response = self.request.get("response")
         mark = self.request.get("mark")
         
         author_entity = Entity.query( Entity.id == author_id ).fetch(1)[0]
         user_entity = Entity.query( Entity.id == user.user_id() ).fetch(1)[0]
-        test_entity = Test.query( Test.id == test_id ).fetch(1)[0]
+        test_entity = Test.query( Test.id == test_id ).fetch(1)[0]        
+        mark_entity = Mark.query( ancestor = ndb.Key("Entity", mark_id) )
+        mark_entity = mark_entity.filter( Mark.test.id == test_id ).fetch(1)[0]
+        # print "***********************"
+        # print path
+        # print user
+        # print author_id
+        # print test_id
+        # print testee_id
+        # print comment
+        # print response
+        # print mark
+        # print author_entity
+        # print user_entity
+        # print test_entity
+        # print "***********************"
         
-        print "***********************"
-        print path
-        print user
-        print author_id
-        print test_id
-        print testee_id
-        print comment
-        print response
-        print mark
-        print author_entity
-        print user_entity
-        print test_entity
-        print "***********************"
+        # logger = logging.getLogger("TestLogger")
+        # print Mark.query( Mark.test.id == test_id ).fetch()
+        # print testee_id
         
-        logger = logging.getLogger("TestLogger")
-        print Mark.query( Mark.test.id == test_id ).fetch()
-        print testee_id
-        
-        
-        mark_query = Mark.query( Mark.test.id == test_entity.id ).filter( )
-      
-        mark_entity = mark_query.fetch(1)[0]
         
         mark_entity.marker_entity = author_entity
         mark_entity.test = test_entity
@@ -310,7 +309,6 @@ class MarkView( webapp2.RequestHandler ):
         mark_entity.comment = comment
         mark_entity.mark = int(mark)
         mark_entity.modified = datetime.datetime.now()
-        mark_entity.id = test_id + user.user_id()
         mark_entity.complete = True
         mark_entity.put()
         self.redirect( path )

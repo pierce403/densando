@@ -14,6 +14,7 @@
 	<form action="/t" method="POST">
 	<input type="hidden" name="test_id" value="{{ test_id }}" />
 	<input type="hidden" name="author_id" value="{{ author_id }}" />
+	<input type="hidden" name="mark_id" value="{{ mark_id }}" />
 	
 	{% if locked %}<div class="notice warning">
 		You recently created or modified this answer, and will have to wait a while before altering it again.
