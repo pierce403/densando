@@ -1,10 +1,13 @@
-# Imports from the Internet's greatest language
+# This forces divisions to return floats, which is the default behaviour in Python 3
+from __future__ import division
+## Imports from the Internet's greatest language
 import webapp2
 import datetime
 import os
 import logging
 import urlparse
-# Imports from GAE
+
+## Imports from GAE
 from google.appengine.ext.webapp import template
 from google.appengine.api import users, memcache
 from google.appengine.ext import ndb
@@ -118,6 +121,9 @@ class CreateAlterTest( webapp2.RequestHandler ):
         else:
             test = Test( parent = ndb.Key('Entity', user.user_id() ) )
             test.created = datetime.datetime.now()
+            test.times_taken = 0
+            test.total_score = 0
+            test.num_marked = 0
             
         test.author_id = user.user_id()
         test.title = self.request.get( 'title' )
@@ -228,6 +234,8 @@ class TestView( webapp2.RequestHandler ):
                 this_mark.test = test
                 this_mark.created = datetime.datetime.now()
                 this_mark.mark = None
+                test.times_taken += 1
+                test.put()
                 
             this_mark.response = self.request.get( 'response' )
             this_mark.complete = False
@@ -314,15 +322,17 @@ class MarkView( webapp2.RequestHandler ):
         # print Mark.query( Mark.test.id == test_id ).fetch()
         # print testee_id
         
-        
         mark_entity.marker_entity = author_entity
         mark_entity.test = test_entity
         mark_entity.response = response
         mark_entity.comment = comment
-        mark_entity.mark = int(mark)
+        mark_entity.mark = int(mark)        
+        test_entity.total_score += mark_entity.mark
+        test_entity.num_marked += 1
         mark_entity.modified = datetime.datetime.now()
         mark_entity.complete = True
         mark_entity.put()
+        test_entity.put()
         self.redirect( path )
         return
         
@@ -339,6 +349,9 @@ class Test( ndb.Model ):
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
     author_id = ndb.StringProperty( indexed=True )
+    times_taken = ndb.IntegerProperty( indexed=False )
+    total_score = ndb.IntegerProperty( indexed=False )
+    num_marked = ndb.IntegerProperty( indexed=False )
 
 class Entity( ndb.Model ):
     # About the user
@@ -401,6 +414,12 @@ def add_test_to_template( template_values, in_test ):
     template_values['test_created'] = in_test.created
     template_values['test_modified'] = in_test.modified
     template_values['author_id'] = in_test.author_id
+    template_values['times_taken'] = in_test.times_taken
+    template_values['total_score'] = in_test.total_score
+    template_values['num_marked'] = in_test.num_marked
+    if in_test.num_marked > 0:
+        template_values['average_mark'] = in_test.total_score / in_test.num_marked
+    
 
     return template_values
 

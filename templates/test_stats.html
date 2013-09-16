@@ -1,14 +1,12 @@
 
 <table>
     <thead>
-        <tr><th colspan=3><h4>Statistics</h4></th></tr>
-        <tr><th colspan=2></th><th>Rank</th></tr>
+        <tr><th colspan=2><h4>Statistics</h4></th></tr>
     </thead>
     <tbody>
-        <tr><td>Number of Tests Taken</td>  <td>1</td>      <td>1</td></tr>
-        <tr><td>Average (Mean) Mark</td>    <td>5.685</td>  <td>1</td></tr>
-        <tr><td>Average (Median) Mark</td>  <td>6</td>      <td>1</td></tr>
-        <tr><td>Average (Mode) Mark</td>    <td>5</td>      <td>1</td></tr>
-        <tr><td>Test Rating</td>            <td>3.4/5</td>  <td>1</td></tr>
+        <tr><td>Times Taken</td><td>{{ times_taken }} ({{ num_marked }} marked)</td></tr>
+        {% if average_mark %}
+        <tr><td>Average Mark</td><td>{{ average_mark|floatformat:"2" }} / 10</td></tr>
+        {% endif %}
     </tbody>
 </table>

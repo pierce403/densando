@@ -5,33 +5,11 @@
 
 <section class="col_5" style="float:right;">
 {% include "test_stats.html" %}
-{% if is_test_marker %}
-		<h1>This human is the marker of these tests</h1>
-		<p>You have {{ to_be_marked|length }} answer{{ to_be_marked|length|pluralize }} waiting to be marked for this test.</p>
-{% else %}
-	{% if mark_id %}
+{% if is_test_marker and to_be_marked|length > 0 %}
+    <p>You have {{ to_be_marked|length }} answer{{ to_be_marked|length|pluralize }} waiting to be marked for this test.</p>
+{% endif %}
+{% if mark_id %}
 		{% include "mark.html" %}
-	{% else %}
-		<pre>
-		<h2>All Values</h2>
-		<strong>Mark:</strong>
-		  Mark ID : {{ mark_id }}
-		  Complete: {{ complete }}
-		  Comment : {{ comment }}
-		  Mark    : {{ mark }}
-		  Mark Cre: {{ mark_created }}
-		  Mark Mod: {{ mark_modified }}
-		<strong>Test:</strong>
-		  Test ID : {{ test_id }}
-		  Title   : {{ title }}
-		  Contents: {{ description|slice:"200" }}
-		  Group   : {{ group }}
-		  Test Cre: {{ test_created }}
-		  Test Mod: {{ test_modified }}
-		<strong>Entity:</strong>
-		  Marker  : {{ name }}
-		</pre>
-	{% endif %}
 {% endif %}
 </section>
 
