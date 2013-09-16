@@ -22,7 +22,7 @@ class MainPage(webapp2.RequestHandler):
         template_values = get_template_values( self )
         
         cursor = Cursor(urlsafe=self.request.get('next'))
-        tests, next_cursor, more = Test.query().order(-Test.created).fetch_page(4, start_cursor=cursor)
+        tests, next_cursor, more = Test.query().order(-Test.created).fetch_page(10, start_cursor=cursor)
         if next_cursor != None:
             next_cursor = next_cursor.urlsafe()
         template_values['recent_tests'] = tests
@@ -193,6 +193,7 @@ class TestView( webapp2.RequestHandler ):
                     finally:    
                         if test.author_id == user.user_id():
                             template_values['is_test_marker'] = True
+                            template_values['locked'] = True
                             test_marker = Entity.query( Entity.id == user.user_id() ).fetch()[0]
                             template_values['to_be_marked'] = get_to_be_marked( test_marker, test )
                             template_values['name'] = test_marker.display_name
@@ -201,6 +202,7 @@ class TestView( webapp2.RequestHandler ):
                 
                 else: 
                     template_values['locked'] = True
+                    template_values['visitor'] = True
                     logging.warning("User not found!")
                     template_values = add_test_to_template( template_values, test )
                     
@@ -332,7 +334,7 @@ class MarkView( webapp2.RequestHandler ):
 class Test( ndb.Model ):
     id = ndb.StringProperty( indexed=True )
     title = ndb.StringProperty( indexed=True )
-    description = ndb.TextProperty( indexed=True )
+    description = ndb.TextProperty( indexed=False )
     group = ndb.StringProperty( indexed=False    )
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )

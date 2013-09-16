@@ -1,7 +1,5 @@
 <a href="/t/{{test.id}}">
-	<p style="float:right;">{{ test.group }}<p>
+	<p style="float:right;">{{ test.created|timesince:date }}{% if test.modified %}<a title="edited:{{ test.modified|timesince:date }} ago">*</a>{% endif %} old in {{ test.group }}<p>
 	<h5>{{ test.title }}</h5>
-	<p>{{ test.description|slice:":50" }}</p>
-	<p><span>Created on: </span><span>{{ test.created }}</span><br/>
-	<span>Last edited: </span><span>{{ test.modified }}</span></p>
+	<p></p>
 </a>

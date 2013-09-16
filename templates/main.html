@@ -11,7 +11,10 @@
 	</div>
     {% endfor %}
     {% if next and more %}
-        <a href="?next={{ next }}">See More...</a>
+    <ul class="button-bar" style="width:100%;">
+        <li style="width:100%;"><a href="?next={{ next }}" style="width:100%;text-align:center;line-height:36px;">See More...</a></li>
+    </ul>
+        
     {% endif %}
 </section>
 {% endblock content %}

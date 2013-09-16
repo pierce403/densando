@@ -1,33 +1,40 @@
-{% extends 'footer.html' %}
+{% extends 'navigation.html' %}
 
 {% block content %}
 <section class="col_7">
-	<header><h1>{{ title }}</h1></header>
+	<header style="overflow:auto;"><h1>{{ title }}</h1></header>
 	<aside>
-		<h2>{{ group }}</h2>
-		<h4>Last Created: {{ test_created }}</h4>
-		<h4>Last Modified: {{ test_modified }}</h4>
-		<h6>{{ test_id }}</h6>
+		<h6>{{ test_id }} - {{ group }}</h2>
+		<h6>Last Created: {{ test_created }} -- Last Modified: {{ test_modified }}</h6>
 	</aside>
-	<p>{{ description }}</p>
+	<p style="clear:both;">{{ description|linebreaks }}</p>
 
 	<form action="/t" method="POST">
-	<input type="hidden" name="test_id" value="{{ test_id }}" />
-	<input type="hidden" name="author_id" value="{{ author_id }}" />
-	<input type="hidden" name="mark_id" value="{{ mark_id }}" />
-	
-	{% if locked %}<div class="notice warning">
-		You recently created or modified this answer, and will have to wait a while before altering it again.
-	</div>{% endif %}
-	<textarea id="response" name="response" {% if current_user == author_id or locked %}disabled{% endif %} >{% if current_user == author_id %}You can't answer your own Test
-	{% else %}{% if response %}{{ response }}{% endif %}{% endif %}</textarea>
-	
-	
-	<button type="submit" {% if current_user == author_id or locked %}disabled{% endif %}>Submit Button</button>
+        <input type="hidden" name="test_id" value="{{ test_id }}" />
+        <input type="hidden" name="author_id" value="{{ author_id }}" />
+        <input type="hidden" name="mark_id" value="{{ mark_id }}" />
+        {% if locked %}
+        <div class="notice warning">
+            <p>You are unable to take this test because 
+            {% if visitor %}
+                you must be signed in to complete tests.</p>
+            {% else %}
+                {% if is_test_marker %}
+                you are the creator of this test</p>
+                {% else %}
+                you recently created or modified this answer, and will have to wait a while before altering it again.</p>
+                {% endif %}
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <textarea id="response" name="response" {% if current_user == author_id or locked %}disabled{% endif %} >{% if response %}{{ response }}{% endif %}</textarea>
+		<button type="submit" {% if current_user == author_id or locked %}disabled{% endif %}>Submit Button</button>
 	</form>
 </section>
 
 <section class="col_5">
+{% include "test_stats.html" %}
 {% if is_test_marker %}
 		<h1>This human is the marker of these tests</h1>
 		<p>You have {{ to_be_marked_cnt }} answer{{ to_be_marked_cnt|pluralize }} waiting to be marked for this test.</p>
