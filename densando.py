@@ -185,7 +185,7 @@ class TestView( webapp2.RequestHandler ):
                         mark_query = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) )
                         mark = mark_query.filter( Mark.test.id == test.id ).fetch(1)[0]
                         template_values = add_mark_to_template( template_values, mark )
-                        if (datetime.datetime.now() - mark.modified) < datetime.timedelta(minutes=10):
+                        if (datetime.datetime.now() - mark.modified) < datetime.timedelta(minutes=10) or mark.complete:
                             template_values['locked'] = True
                     except IndexError:
                         logging.info( "No mark found" )
@@ -365,7 +365,7 @@ class Mark( ndb.Model ):
 
 def add_mark_to_template( template_values, in_mark ):
     """Combines Mark object properties into template_values"""
-    logging.info(in_mark)
+    logging.debug(in_mark)
     template_values = add_entity_to_template( template_values, in_mark.marker_entity )
     template_values = add_test_to_template( template_values, in_mark.test )
     template_values['complete'] = in_mark.complete
@@ -387,15 +387,8 @@ def add_entity_to_template( template_values, in_entity ):
     template_values['bio'] = in_entity.bio
     ## Lists of Tests
     template_values['completed'] = get_completed_tests( in_entity )
-    template_values['completed_cnt'] = len( template_values['completed'] )
     template_values['in_progress'] = get_in_progess_tests( in_entity )
-    template_values['in_progress_cnt'] = len( template_values['in_progress'] )
     template_values['my_tests'] = get_created_tests( in_entity )
-    template_values['my_tests_cnt'] = len( template_values['my_tests'] )
-    ## Lists of Marks
-    template_values['to_be_marked'] = get_to_be_marked( in_entity )
-    template_values['to_be_marked_cnt'] = len( template_values['to_be_marked'] ) 
-    
     return template_values
     
 def add_test_to_template( template_values, in_test ):
@@ -454,7 +447,8 @@ def get_to_be_marked( entity, test=None, num=None ):
     mark_query = Mark.query( Mark.marker_entity.id == entity.id )
     mark_query = mark_query.filter( Mark.complete == False )
     if test:
-        mark_query = mark_query.filter( Mark.test.id == test.id ) 
+        mark_query = mark_query.filter( Mark.test.id == test.id )
+        mark_query = mark_query.filter( Mark.test.author_id == entity.id )
     
     if not num:
         return mark_query.fetch()
