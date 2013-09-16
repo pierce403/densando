@@ -1,13 +1,17 @@
-{% extends 'footer.html' %}
+{% extends 'navigation.html' %}
 
 {% block content %}
 <section>
 <p>Hi, Welcome to Densando.  Your work is your reward.</p>
 </section>
 <section>
-{% for test in recent_tests %}
+    {% for test in recent_tests %}
 	<div class="front-page-test test-preview"> 
 		{% include "test.html" %}
 	</div>
-{% endfor %}
+    {% endfor %}
+    {% if next and more %}
+        <a href="?next={{ next }}">See More...</a>
+    {% endif %}
+</section>
 {% endblock content %}

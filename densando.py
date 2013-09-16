@@ -3,12 +3,12 @@ import webapp2
 import datetime
 import os
 import logging
-import hashlib
 import urlparse
 # Imports from GAE
 from google.appengine.ext.webapp import template
-from google.appengine.api import users
+from google.appengine.api import users, memcache
 from google.appengine.ext import ndb
+from google.appengine.datastore.datastore_query import Cursor
 
 ## Constants
 template_dir = 'templates/'
@@ -21,11 +21,21 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         template_values = get_template_values( self )
         
-        template_values['recent_tests'] = get_most_recent_tests(5)
-        
+        cursor = Cursor(urlsafe=self.request.get('next'))
+        tests, next_cursor, more = Test.query().order(-Test.created).fetch_page(4, start_cursor=cursor)
+        if next_cursor != None:
+            next_cursor = next_cursor.urlsafe()
+        template_values['recent_tests'] = tests
+        template_values['next'] = next_cursor
+        template_values['more'] = more
+                
         path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'main.html' ) )
         self.response.out.write( template.render( path, template_values ))
         return
+        
+
+
+
         
 class LoginHandler( webapp2.RequestHandler ):
     logger = logging.getLogger("LoginHandler")
@@ -423,16 +433,19 @@ def get_created_tests( entity, num=None ):
     else:
         return test_query.fetch( num )
         
-def get_most_recent_tests( num=None ):
-    """Retrieves the num most recent test"""
+def get_tests( num=None, cursor=None ):
+    """Retrieves the num most recent tests, or somethine something cursors"""
     test_query = Test.query().order( -Test.created )
-    if len(test_query.fetch()) > 0:
-        if not num:
-            return test_query.fetch()
-        else:
-            return test_query.fetch( num )
+    # Set the query start to the cursor location if provided
+    if cursor:
+        test_query.with_cursor(start_cursor=cursor)
+    # Return the number of requested results
+    if num: 
+        return test_query.fetch( num )
+    # Or all if no num was specified
     else:
-        return []
+        return test_query.fetch()        
+
 
 def get_to_be_marked( entity, test=None, num=None ):
     """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
@@ -447,7 +460,7 @@ def get_to_be_marked( entity, test=None, num=None ):
         return mark_query.fetch( num )
         
 def get_marked( entity, num=None ):
-    """Retrieves the responses from other entitis that need to have marks assigned for tests created by this entity"""
+    """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
     mark_query = Mark.query( Mark.marker_entity.id == entity.id )
     mark_query = mark_query.filter( Mark.complete == True )
     if not num:
