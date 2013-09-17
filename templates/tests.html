@@ -4,7 +4,12 @@
 	{% for test in my_tests %}
 		<div class="test-preview"> 
 		{% include "test.html" %}
-        <a href="/c/{{ test.id }}" class="button">Edit</a>
+        <a href="{{ nav_urls.create_test }}/{{ test.id }}" class="button">Edit</a>
+        {% if test.open %}
+            <a href="{{ nav_urls.tests }}/{{ test.id }}/f" class="button">Close Test</a>
+        {% else %}
+            <a href="{{ nav_urls.tests }}/{{ test.id }}/t" class="button">Open Test</a>
+        {% endif %}
 		</div>
 	{% endfor %}
 </section>

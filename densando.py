@@ -25,7 +25,7 @@ class MainPage(webapp2.RequestHandler):
         template_values = get_template_values( self )
         
         cursor = Cursor(urlsafe=self.request.get('next'))
-        tests, next_cursor, more = Test.query().order(-Test.created).fetch_page(10, start_cursor=cursor)
+        tests, next_cursor, more = get_tests( num=5, start_cursor=cursor )
         if next_cursor != None:
             next_cursor = next_cursor.urlsafe()
         template_values['recent_tests'] = tests
@@ -36,9 +36,23 @@ class MainPage(webapp2.RequestHandler):
         self.response.out.write( template.render( path, template_values ))
         return
         
+class OpenCloseTest( webapp2.RequestHandler ):
+    logger = logging.getLogger("OpenCloseTest")
 
-
-
+    def get(self, test_id, open):
+        open = True if open=="t" else False
+        user = users.get_current_user()
+        test_query = Test.query( ancestor = ndb.Key("Entity", user.user_id()) ).filter( Test.id == test_id )
+        test_entity = test_query.fetch(1)[0]
+        if open and not test_entity.open:
+            test_entity.open = True
+            test_entity.put()
+        if not open and test_entity.open:
+            test_entity.open = False
+            test_entity.put()
+            
+        self.redirect("/u")
+       
         
 class LoginHandler( webapp2.RequestHandler ):
     logger = logging.getLogger("LoginHandler")
@@ -126,6 +140,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
             test.times_taken = 0
             test.total_score = 0
             test.num_marked = 0
+            test.open = True
             
         test.author_id = user.user_id()
         test.title = self.request.get( 'title' )
@@ -354,6 +369,7 @@ class Test( ndb.Model ):
     times_taken = ndb.IntegerProperty( indexed=False )
     total_score = ndb.IntegerProperty( indexed=False )
     num_marked = ndb.IntegerProperty( indexed=False )
+    open = ndb.BooleanProperty( indexed=True )
 
 class Entity( ndb.Model ):
     # About the user
@@ -419,6 +435,7 @@ def add_test_to_template( template_values, in_test ):
     template_values['times_taken'] = in_test.times_taken
     template_values['total_score'] = in_test.total_score
     template_values['num_marked'] = in_test.num_marked
+    template_values['open'] = in_test.open
     if in_test.num_marked > 0:
         template_values['average_mark'] = in_test.total_score / in_test.num_marked
     
@@ -449,12 +466,14 @@ def get_created_tests( entity, num=None ):
     else:
         return test_query.fetch( num )
         
-def get_tests( num=None, cursor=None ):
-    """Retrieves the num most recent tests, or somethine something cursors"""
+def get_tests( num=None, start_cursor=None, end_cursor=None ):
+    """Retrieves the num most recent tests cursors"""
     test_query = Test.query().order( -Test.created )
+    # filter out all of the closed tests
+    test_query = test_query.filter( Test.open == True )
     # Set the query start to the cursor location if provided
-    if cursor:
-        test_query.with_cursor(start_cursor=cursor)
+    if start_cursor:
+        return test_query.fetch_page(num, start_cursor=start_cursor, enc_cursor=end_cursor)
     # Return the number of requested results
     if num: 
         return test_query.fetch( num )
@@ -505,7 +524,8 @@ def get_navigation_urls( self, user ):
     navigation_urls = {
         'home'  : '/',
         'create_test': '/c',
-        'profile': '/u'
+        'profile': '/u',
+        'tests': '/t',
     }
     if user:
         navigation_urls['logout'] = users.create_logout_url( '/' )
@@ -523,6 +543,7 @@ app = webapp2.WSGIApplication( [
     ( '/c', CreateAlterTest ),
     ( '/u/([^/]+)', UserProfile ),
     ( '/u', UserProfile ),
+    ( '/t/([^/]+)/([tf])', OpenCloseTest ),
     ( '/t/([^/]+)', TestView ),
     ( '/t', TestView ),
     ( '/m/([^/]+)', MarkView ),
