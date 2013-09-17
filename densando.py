@@ -368,7 +368,7 @@ def add_entity_to_template( template_values, in_entity, request=None, open=None 
         
         template_values['completed'] = get_marks( num=5, start_cursor=completed_cursor, ancestor_key=entity_key, mark_complete=True )
         template_values['in_progress'] = get_marks( num=5, start_cursor=in_progress_cursor, ancestor_key=entity_key, mark_complete=False )
-        template_values['my_tests'] = get_tests( num=5, start_cursor=created_cursor, ancestor_key=entity_key, open=open )
+        template_values['created_tests'] = get_tests( num=5, start_cursor=created_cursor, ancestor_key=entity_key, open=open )
 
     return template_values
     
@@ -444,7 +444,7 @@ def get_grouped_marks( ancestor_key ):
             # If the set of groups got longer, add a new dict to the list
             grouped_marks.append({
                 'name': mark.test.group,
-                'tests_taken': 0,
+                'tests_taken': 1,
                 'total_score': mark.mark,
             })
         else:
