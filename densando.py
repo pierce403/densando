@@ -163,8 +163,7 @@ class UserProfile( webapp2.RequestHandler ):
                 entity_query = Entity.query( Entity.id == profile_to_get ).fetch()
             
             entity = entity_query[0]
-            template_values['gravatar'] = "http://www.gravatar.com/avatar/" + hashlib.md5(entity.user.email().lower()).hexdigest() + "?" + urllib.urlencode({'s':"40"})
-           
+                      
             if len(entity_query) > 0:
                 template_values = add_entity_to_template(template_values, entity, self.request)
                 for key, value in template_values.items():
@@ -372,6 +371,7 @@ def add_entity_to_template( template_values, in_entity, request=None, open=None 
     template_values['modified'] = in_entity.modified
     template_values['bio'] = in_entity.bio
     template_values['grouped_marks'] = get_grouped_marks( ancestor_key=ndb.Key("Entity", in_entity.id) )
+    template_values['gravatar'] = "http://www.gravatar.com/avatar/" + hashlib.md5(in_entity.user.email().lower()).hexdigest() + "?s=60"
     ## Lists of Tests
     if request: 
         # This might be an odd way of defining this, but I want to have to ask for these lists
