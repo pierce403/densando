@@ -1,11 +1,9 @@
 <section id="{{ mark_id }}">
-
-<h2>Score: {{ mark }}</h2>
-<p>Comment:<br/>{{ comment }}</p>
-
-<aside>
-    <span>Created on: </span><span>{{ mark_created }}</span><br/>
-    <span>Last edited: </span><span>{{ mark_modified }}</span>
-</aside>
-
+    <aside style="float:right;">
+        <p>You responded to this test {{ mark_created|timesince:date }} ago.</p>
+        <p>This mark was last edited {{ mark_modified|timesince:date }} ago.</p>
+    </aside>
+    <h5>Your response has been marked</h5>
+    <p>Response from test author:<br/>{{ comment }}</p>
+    <p>Your score is <strong>{{ mark }}</strong>/10.
 </section>

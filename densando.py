@@ -95,14 +95,16 @@ class CreateAlterTest( webapp2.RequestHandler ):
             if len (entity_query)>0:
                 entity = entity_query[0]
                 test_query = Test.query( ancestor = ndb.Key('Entity', user.user_id() ) )
-                logging.debug("TEST QUERY: %s, ENTITY QUERY: %s", test_query, entity_query )
+                logging.info("TEST QUERY: %s, ENTITY QUERY: %s", test_query, entity_query )
                 if len(test_query.fetch()) > 0:
-                    logging.debug("TEST QUERY: %s, LOOK FOR: %s", test_query, in_test_id )
+                    logging.info("TEST QUERY: %s, LOOK FOR: %s", test_query, in_test_id )
                     if in_test_id:
                         in_query = test_query.filter( Test.id == in_test_id ).fetch(1)
-                        logging.debug("Fetch: %s", in_query )
-                        # The test exists
-                        template_values = add_test_to_template( template_values, in_query[0] )
+                        logging.info("Fetch: %s", in_query )
+                        try: # The test exists
+                            template_values = add_test_to_template( template_values, in_query[0] )
+                        except IndexError: # The test does not exist
+                            self.redirect("/")
                 
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
                 self.response.out.write( template.render( path, template_values ))
@@ -112,7 +114,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
     def post(self):
         user = users.get_current_user()
         test_query = Test.query( ancestor = ndb.Key('Entity', user.user_id()) )
-        test_query = test_query.filter( Test.id == self.request.get( 'title' ) ).fetch()
+        test_query = test_query.filter( Test.id == self.request.get( 'id' ) ).fetch()
         logging.debug("TEST QUERY: %s", test_query)
         
         if len(test_query) > 0:

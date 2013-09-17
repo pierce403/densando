@@ -1,21 +1,20 @@
 {% extends 'navigation.html' %}
 
 {% block content %}
+<form action="/c" method="post">
 {% if test_id %}
-<h1>{{ title }}</h1>
+<input type="hidden" name="id" value="{{ test_id }}">
 {% endif %}
 
 
-<form action="/c" method="post">
-
 <label for="title">Test Title</label><br/>
-<input id="title" type="text" name="title" required></input>
+<input id="title" type="text" name="title" value="{{ title }}" required></input>
 
 <br/>
 
 <label for="group">Group</label><br/>
 <select id="group" name="group" required>
-    <option value=""></option>
+    <option value="{{ group }}">{{ group|capfirst }}</option>
     <option value="python">Python</option>
     <option value="javascript">JavaScript</option>
 </select>
@@ -24,7 +23,7 @@
 <br/>
 
 <label for="description">What is is that needs to be completed?</label><br/>
-<textarea id="description" name="description" required></textarea>
+<textarea id="description" name="description" required>{{ description }}</textarea>
 
 <br/>
 <br/>

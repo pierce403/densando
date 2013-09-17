@@ -5,12 +5,6 @@
 
 <section class="col_5" style="float:right;">
 {% include "test_stats.html" %}
-{% if is_test_marker and to_be_marked|length > 0 %}
-    <p>You have {{ to_be_marked|length }} answer{{ to_be_marked|length|pluralize }} waiting to be marked for this test.</p>
-{% endif %}
-{% if mark_id %}
-		{% include "mark.html" %}
-{% endif %}
 </section>
 
 
@@ -34,6 +28,9 @@
             {% else %}
                 {% if is_test_marker %}
                 you are the creator of this test</p>
+                {% if to_be_marked|length > 0 %}
+                    <p>You have {{ to_be_marked|length }} answer{{ to_be_marked|length|pluralize }} waiting to be marked for this test.</p>
+                {% endif %}
                 {% else %}
                     {% if mark %}
                         you have already taken this test</p>
@@ -44,9 +41,14 @@
             {% endif %}
         </div>
         {% endif %}
-        
-        <textarea id="response" name="response" {% if current_user == author_id or locked %}disabled{% endif %} >{% if response %}{{ response }}{% endif %}</textarea><br/>
-		<button type="submit" {% if current_user == author_id or locked %}disabled{% endif %}>Submit Button</button>
+        {% if mark %}
+            {% include "mark.html" %}
+        {% else %}
+        {% if current_user != author_id %}
+            <textarea id="response" name="response" {% if locked %}disabled{% endif %} >{% if response %}{{ response }}{% endif %}</textarea><br/>
+            <button type="submit" {% if current_user == author_id or locked %}disabled{% endif %}>Submit Button</button>
+        {% endif %}
+        {% endif %}
 	</form>
 </section>
 
