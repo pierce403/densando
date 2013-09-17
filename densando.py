@@ -365,7 +365,7 @@ def add_entity_to_template( template_values, in_entity, request=None, open=None 
         in_progress_cursor=Cursor(urlsafe=request.get('next_in_progress'))
         created_cursor=Cursor(urlsafe=request.get('next_created'))
         
-        template_values['completed'] = get_marks( num=5, start_cursor=completed_cursor, ancestor_key=entity_key )
+        template_values['completed'] = get_marks( num=5, start_cursor=completed_cursor, ancestor_key=entity_key, mark_complete=True )
         template_values['in_progress'] = get_marks( num=5, start_cursor=in_progress_cursor, ancestor_key=entity_key, mark_complete=False )
         template_values['my_tests'] = get_tests( num=5, start_cursor=created_cursor, ancestor_key=entity_key, open=open )
 

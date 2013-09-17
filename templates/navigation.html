@@ -2,16 +2,13 @@
 
 {% block navigation %}
 <ul class="menu">
-	<li class="current"><a href="{{ nav_urls.home }}">Home</a></li>
 	<li><a href="{{ nav_urls.home }}"><i class="icon-list"></i> Tests</a>
 	{% if user %}
-		<ul>
-			<li><a href="{{ nav_urls.profile }}"><i class="icon-cog"></i> My Tests</a></li>
-			<li><a href="{{ nav_urls.create_test }}"><i class="icon-cog"></i> Create New Test</a></li>
-		</ul></li>
-		<li ><a href="{{ nav_urls.logout }}"><i class="icon-trash"></i> Logout</a></li>
+		<li><a href="{{ nav_urls.create_test }}"><i class="icon-file-alt"></i> Create New Test</a></li>
+        <li><a href="{{ nav_urls.profile }}"><i class="icon-bar-chart"></i> My Tests</a></li>
+		<li ><a href="{{ nav_urls.logout }}"><i class="icon-signout"></i> Logout</a></li>
 	{% else %}
-		<li ><a href="{{ nav_urls.login }}"><i class="icon-trash"></i> Login</a></li>
+		<li ><a href="{{ nav_urls.login }}"><i class="icon-signin"></i> Login</a></li>
 	{% endif %}
 </ul>
 
