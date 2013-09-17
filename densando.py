@@ -409,7 +409,7 @@ def add_test_to_template( template_values, in_test ):
         if template_values['average_rating'] != in_test.average_rating:
             save_average_rating( in_test.id, template_values['average_rating'])
     return template_values
-
+   
 def save_average_rating( test_id, avg ):
     test = Test.query( Test.id == test_id ).fetch(1)[0]
     test.average_rating = avg
