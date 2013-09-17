@@ -5,7 +5,7 @@
 <section class="col_6" >
 	<header><h3>My Tests</h3></header>
 	{% for test in my_tests.tests %}
-		<div class="test-preview"> 
+		<div class="test-preview{%if test.num_marked != test.times_taken %} new-to-be-marked{% endif %}"> 
 		{% include "test.html" %}
         <a href="{{ nav_urls.create_test }}/{{ test.id }}" class="button">Edit</a>
         {% if test.open %}

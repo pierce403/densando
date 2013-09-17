@@ -4,6 +4,6 @@
         <p>This mark was last edited {{ mark_modified|timesince:date }} ago.</p>
     </aside>
     <h5>Your response has been marked</h5>
-    <p>Response from test author:<br/>{{ comment }}</p>
+    <p>Response from test author:<br/>{{ comment|linebreaks }}</p>
     <p>Your score is <strong>{{ mark }}</strong>/10.
 </section>

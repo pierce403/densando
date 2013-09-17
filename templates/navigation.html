@@ -6,9 +6,9 @@
 	{% if user %}
 		<li><a href="{{ nav_urls.create_test }}"><i class="icon-file-alt"></i> Create New Test</a></li>
         <li><a href="{{ nav_urls.profile }}"><i class="icon-bar-chart"></i> My Tests</a></li>
-		<li ><a href="{{ nav_urls.logout }}"><i class="icon-signout"></i> Logout</a></li>
+		<li style="float:right;"><a href="{{ nav_urls.logout }}"><i class="icon-signout"></i> Logout</a></li>
 	{% else %}
-		<li ><a href="{{ nav_urls.login }}"><i class="icon-signin"></i> Login</a></li>
+		<li style="float:right;"><a href="{{ nav_urls.login }}"><i class="icon-signin"></i> Login</a></li>
 	{% endif %}
 </ul>
 

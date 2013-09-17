@@ -407,6 +407,28 @@ def add_test_to_template( template_values, in_test ):
     # else:
         # return mark_query.fetch( num )  
 
+def get_to_be_marked( entity, test=None, num=None ):
+    """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
+    mark_query = Mark.query( Mark.marker_entity.id == entity.id )
+    mark_query = mark_query.filter( Mark.complete == False )
+    if test:
+        mark_query = mark_query.filter( Mark.test.id == test.id )
+        mark_query = mark_query.filter( Mark.test.author_id == entity.id )
+    
+    if not num:
+        return mark_query.fetch()
+    else:
+        return mark_query.fetch( num )
+        
+def get_marked( entity, num=None ):
+    """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
+    mark_query = Mark.query( Mark.marker_entity.id == entity.id )
+    mark_query = mark_query.filter( Mark.complete == True )
+    if not num:
+        return mark_query.fetch()
+    else:
+        return mark_query.fetch( num )
+        
 def get_marks( num=None, start_cursor=None, ancestor_key=None, mark_complete=None):
     """Retrieves the num most recent marks, starting at start_cursor, only for the ancestor if provided, and only completed or not-completed tests if mark_complete is provided"""
     if ancestor_key:
@@ -453,29 +475,6 @@ def get_tests( num=None, start_cursor=None, ancestor_key=None, open=None ):
         return test_query.fetch( num )
     # Or all if no num was specified
     return test_query.fetch()        
-
-
-def get_to_be_marked( entity, test=None, num=None ):
-    """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
-    mark_query = Mark.query( Mark.marker_entity.id == entity.id )
-    mark_query = mark_query.filter( Mark.complete == False )
-    if test:
-        mark_query = mark_query.filter( Mark.test.id == test.id )
-        mark_query = mark_query.filter( Mark.test.author_id == entity.id )
-    
-    if not num:
-        return mark_query.fetch()
-    else:
-        return mark_query.fetch( num )
-        
-def get_marked( entity, num=None ):
-    """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
-    mark_query = Mark.query( Mark.marker_entity.id == entity.id )
-    mark_query = mark_query.filter( Mark.complete == True )
-    if not num:
-        return mark_query.fetch()
-    else:
-        return mark_query.fetch( num )
         
 def get_template_values( self ):
     """Constructs and returns a dict of common values needed by all or nearly all templates"""

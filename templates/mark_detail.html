@@ -5,8 +5,8 @@
 	
 	<fieldset class="mark-detail">
 	<legend>{{ title }}</legend>
-	<label for="response">Response</label><br/>
-	<textarea name="response" disabled>{{ mark.response }}</textarea>
+    <p>{{ mark.taker_entity.display_name }} has responded to your test:</p>
+	<p>{{ mark.response|linebreaks }}</p>
 	
 	<label for="comment">Comments</label>
 	<textarea name="comment"></textarea>
