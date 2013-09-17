@@ -22,6 +22,7 @@
     <thead><tr><th colspan="2">{{ name }}'s Profile</th></tr></thead>
     <tbody>
 		<tr><td>Display Name</td><td>{{ name }}</td></tr>
+		<tr><td>Gravatar</td><td><img src="{{ gravatar }}" alt="Your Gravatar"/></td></tr>
 		<tr><td>Member Since</td><td>{{ created }}</td></tr>
 		<tr><td>Biography</td><td>{{ bio }}</td></tr>
 		<tr><td>Tests Created</td><td>{{ created_tests.tests|length }}</td></tr>

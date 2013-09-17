@@ -6,6 +6,8 @@ import os
 import logging
 import urlparse
 import math
+# for encoding urls and generating md5 hashes
+import urllib, hashlib
 
 ## Imports from GAE
 from google.appengine.ext.webapp import template
@@ -161,8 +163,8 @@ class UserProfile( webapp2.RequestHandler ):
                 entity_query = Entity.query( Entity.id == profile_to_get ).fetch()
             
             entity = entity_query[0]
-            
-            
+            template_values['gravatar'] = "http://www.gravatar.com/avatar/" + hashlib.md5(entity.user.email().lower()).hexdigest() + "?" + urllib.urlencode({'s':"40"})
+           
             if len(entity_query) > 0:
                 template_values = add_entity_to_template(template_values, entity, self.request)
                 for key, value in template_values.items():
