@@ -4,13 +4,13 @@
 
 <section class="col_5" style="float:right;">
 <table style="margin: 6px;">
-	<thead><tr><th>test Group</th><th>Total Score</th><th>Level</th><th>Level Progress</th></tr></thead>
+	<thead><tr><th>test Group</th><th>Total Score</th><th>Level</th><th>Progress</th></tr></thead>
 	<tbody>
         {% for group in grouped_marks %}
         <tr><td>{{ group.name }}</td>
         <td>{{ group.total_score }} from {{ group.tests_taken }} test{{ group.tests_taken|pluralize }}</td>
         <td>{{ group.level|floatformat:"0" }}</td>
-        <td><progress id='p' max='100' value={{ group.level_progress }}>{{ group.level_progress|floatformat:"-2" }}%</progress></td>
+        <td><meter id='level_progress' max='100' min="0" value={{ group.level_progress }}>{{ group.level_progress|floatformat:"-2" }}%</meter></td>
         </tr>
         {% endfor %}
     </tbody></table>
