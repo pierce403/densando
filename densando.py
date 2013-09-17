@@ -23,15 +23,9 @@ class MainPage(webapp2.RequestHandler):
     
     def get(self):
         template_values = get_template_values( self )
-        
-        cursor = Cursor(urlsafe=self.request.get('next'))
-        tests, next_cursor, more = get_tests( num=5, start_cursor=cursor )
-        if next_cursor != None:
-            next_cursor = next_cursor.urlsafe()
-        template_values['recent_tests'] = tests
-        template_values['next'] = next_cursor
-        template_values['more'] = more
-                
+        start_cursor = Cursor(urlsafe=self.request.get('next'))
+        # only return open tests with open=True
+        template_values['recent_tests'] = get_tests( num=5, start_cursor=start_cursor, open=True )
         path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'main.html' ) )
         self.response.out.write( template.render( path, template_values ))
         return
@@ -166,15 +160,15 @@ class UserProfile( webapp2.RequestHandler ):
                 entity_query = Entity.query( Entity.id == user.user_id() ).fetch() 
             else:
                 logging.info("Fetch this humanoid's info! (%s)", user.user_id() )
-                #template_values = add_entity_to_template(template_values, user )
                 logging.info("Fetch profile for other humanoid! (%s)", profile_to_get )
                 entity_query = Entity.query( Entity.id == profile_to_get ).fetch()
             
             entity = entity_query[0]
-            #test_query = Test.query( ancestor = ndb.Key('Entity', entity.id ) ).fetch(1)
             
             if len(entity_query) > 0:
-                template_values = add_entity_to_template(template_values, entity )
+                template_values = add_entity_to_template(template_values, entity, self.request)
+                for key, value in template_values.items():
+                    logging.error( "%s : %s", key, value )
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'profile.html' ) )
                 self.response.out.write( template.render( path, template_values ))
                 return
@@ -267,45 +261,7 @@ class TestView( webapp2.RequestHandler ):
         
         
 class MarkView( webapp2.RequestHandler ):
-    
-    # def get(self, mark_or_user=None):
-    
-        # template_values = get_template_values( self )
-        # user = users.get_current_user()
-    
-        # if mark_or_user:
-            # try:
-                # entity = Entity.query( Entity.id == mark_or_user ).fetch(1)[0] 
-                # template_values = add_entity_to_template( template_values, entity )
-                # template_values['current_user'] = user.user_id()
-            # except IndexError:
-                # try:
-                    # mark = Mark.query( Mark.id == mark_or_user ).fetch(1)[0]
-                    # template_values = add_mark_to_template( template_values, mark )
-                # except:
-                    # ## if it's not a mark or an entityid, maybe it's half?
-                    # mark = Mark.query( Mark.id == mark_or_user + user.user_id() ).fetch(1)[0]           
-                    # template_values = add_mark_to_template( template_values, mark )
-                # finally:
-                    # path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'mark_detail.html') )
-                    # self.response.out.write( template.render( path, template_values) )
-                    
-            # else:
-                # # Parameter was a user.id, so load the master page
-                # path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'marks.html') )
-                # self.response.out.write( template.render( path, template_values) )
-        # else:
-            # try:
-                # entity = Entity.query( Entity.id == user.user_id() ).fetch(1)[0] 
-                # template_values = add_entity_to_template( template_values, entity )
-                # template_values['current_user'] = user.user_id()
-            # except:
-                # raise
-            # else:
-                # path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'marks.html') )
-                # self.response.out.write( template.render( path, template_values) )
-        # return       
-        
+
     def post( self, in_test_id ):
         path = urlparse.urlsplit(self.request.referrer).path
         user = users.get_current_user()
@@ -321,24 +277,7 @@ class MarkView( webapp2.RequestHandler ):
         test_entity = Test.query( Test.id == test_id ).fetch(1)[0]        
         mark_entity = Mark.query( ancestor = ndb.Key("Entity", mark_id) )
         mark_entity = mark_entity.filter( Mark.test.id == test_id ).fetch(1)[0]
-        # print "***********************"
-        # print path
-        # print user
-        # print author_id
-        # print test_id
-        # print testee_id
-        # print comment
-        # print response
-        # print mark
-        # print author_entity
-        # print user_entity
-        # print test_entity
-        # print "***********************"
-        
-        # logger = logging.getLogger("TestLogger")
-        # print Mark.query( Mark.test.id == test_id ).fetch()
-        # print testee_id
-        
+ 
         mark_entity.marker_entity = author_entity
         mark_entity.test = test_entity
         mark_entity.response = response
@@ -408,7 +347,7 @@ def add_mark_to_template( template_values, in_mark ):
     template_values['mark_modified'] = in_mark.modified
     return template_values
     
-def add_entity_to_template( template_values, in_entity ):
+def add_entity_to_template( template_values, in_entity, request=None, open=None ):
     """Combines Entity object properties into template_values"""
     logging.debug( in_entity )
     template_values['name'] = in_entity.display_name
@@ -417,9 +356,19 @@ def add_entity_to_template( template_values, in_entity ):
     template_values['modified'] = in_entity.modified
     template_values['bio'] = in_entity.bio
     ## Lists of Tests
-    template_values['completed'] = get_completed_tests( in_entity )
-    template_values['in_progress'] = get_in_progess_tests( in_entity )
-    template_values['my_tests'] = get_created_tests( in_entity )
+    if request: 
+        # This might be an odd way of defining this, but I want to have to ask for these lists
+        # instead of providing them to each page that loads an entity.
+        entity_key = ndb.Key('Entity', template_values['id'])
+        # Get cursors, if available (two won't be for sure)
+        completed_cursor=Cursor(urlsafe=request.get('next_completed'))
+        in_progress_cursor=Cursor(urlsafe=request.get('next_in_progress'))
+        created_cursor=Cursor(urlsafe=request.get('next_created'))
+        
+        template_values['completed'] = get_marks( num=5, start_cursor=completed_cursor, ancestor_key=entity_key )
+        template_values['in_progress'] = get_marks( num=5, start_cursor=in_progress_cursor, ancestor_key=entity_key, mark_complete=False )
+        template_values['my_tests'] = get_tests( num=5, start_cursor=created_cursor, ancestor_key=entity_key, open=open )
+
     return template_values
     
 def add_test_to_template( template_values, in_test ):
@@ -442,44 +391,68 @@ def add_test_to_template( template_values, in_test ):
 
     return template_values
 
-def get_completed_tests( entity, num=None ):
-    mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
-    mark_query = mark_query.filter( Mark.complete == True )
-    if not num:
-        return [mark.test for mark in mark_query.fetch()]
-    else:
-        return mark_query.fetch( num )    
+# def get_completed_tests( entity, num=None, request=None ):
+    # mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
+    # mark_query = mark_query.filter( Mark.complete == True ).order( -Mark.test.created )
+    # if not num:
+        # return [mark.test for mark in mark_query.fetch()]
+    # else:
+        # return mark_query.fetch( num )    
     
-def get_in_progess_tests( entity, num=None ):
-    mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
-    mark_query = mark_query.filter( Mark.complete == False )
-    if not num:
-        return [mark.test for mark in mark_query.fetch()]
-    else:
-        return mark_query.fetch( num )  
+# def get_in_progess_tests( entity, num=None, request=None ):
+    # mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
+    # mark_query = mark_query.filter( Mark.complete == False )
+    # if not num:
+        # return [mark.test for mark in mark_query.fetch()]
+    # else:
+        # return mark_query.fetch( num )  
 
-def get_created_tests( entity, num=None ):
-    """Retrieves the tests that have been created by entity"""
-    test_query = Test.query( ancestor = ndb.Key('Entity', entity.id) )
-    if not num:
-        return test_query.fetch()
-    else:
-        return test_query.fetch( num )
-        
-def get_tests( num=None, start_cursor=None, end_cursor=None ):
-    """Retrieves the num most recent tests cursors"""
-    test_query = Test.query().order( -Test.created )
-    # filter out all of the closed tests
-    test_query = test_query.filter( Test.open == True )
-    # Set the query start to the cursor location if provided
+def get_marks( num=None, start_cursor=None, ancestor_key=None, mark_complete=None):
+    """Retrieves the num most recent marks, starting at start_cursor, only for the ancestor if provided, and only completed or not-completed tests if mark_complete is provided"""
+    if ancestor_key:
+        # This checks for only marks created by this entity
+        mark_query = Mark.query( ancestor = ancestor_key ).order( -Mark.test.created )
+    else:        
+        mark_query = Mark.query().order( -Mark.test.created )
+    if mark_complete is not None:
+        # Filter completed marks based on mark_complete -> default is None => all marks
+        mark_query = mark_query.filter( Mark.complete == mark_complete )
     if start_cursor:
-        return test_query.fetch_page(num, start_cursor=start_cursor, enc_cursor=end_cursor)
-    # Return the number of requested results
-    if num: 
+        # Set the query start to the cursor location, if provided
+        marks, next_cursor, more = mark_query.fetch_page(num, start_cursor=start_cursor)
+        try:
+            return { 'marks':marks, 'next':next_cursor.urlsafe(), 'more':more }
+        except:
+            return { 'marks':marks, 'next':None, 'more':False }
+    elif num: 
+        # Otherwise return the number of requested results
+        return mark_query.fetch( num )
+    # Or all if no num was specified
+    return mark_query.fetch()   
+
+        
+def get_tests( num=None, start_cursor=None, ancestor_key=None, open=None ):
+    """Retrieves the num most recent tests, starting at start_cursor, and only for the ancestor if provided"""
+    if ancestor_key:
+        # This checks for only tests created by this entity
+        test_query = Test.query( ancestor = ancestor_key ).order( -Test.created )
+    else:
+        test_query = Test.query().order( -Test.created )
+    if open is not None:
+        # filter open or closed tests as needed
+        test_query = test_query.filter( Test.open == open )
+    if start_cursor:
+        # Set the query start to the cursor location if provided
+        tests, next_cursor, more = test_query.fetch_page(num, start_cursor=start_cursor)
+        try:
+            return { 'tests':tests, 'next':next_cursor.urlsafe(), 'more':more }
+        except:
+            return { 'tests':tests, 'next':None, 'more':False }
+    elif num: 
+        # Otherwise return the number of requested results
         return test_query.fetch( num )
     # Or all if no num was specified
-    else:
-        return test_query.fetch()        
+    return test_query.fetch()        
 
 
 def get_to_be_marked( entity, test=None, num=None ):

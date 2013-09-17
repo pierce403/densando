@@ -10,7 +10,33 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: Mark
+  ancestor: yes
+  properties:
+  - name: complete
+  - name: test.created
+    direction: desc
+
+- kind: Mark
+  ancestor: yes
+  properties:
+  - name: test.created
+    direction: desc
+
 - kind: Test
+  properties:
+  - name: open
+  - name: created
+    direction: desc
+
+- kind: Test
+  ancestor: yes
+  properties:
+  - name: created
+    direction: desc
+
+- kind: Test
+  ancestor: yes
   properties:
   - name: open
   - name: created

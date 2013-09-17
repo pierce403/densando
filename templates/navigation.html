@@ -3,7 +3,7 @@
 {% block navigation %}
 <ul class="menu">
 	<li class="current"><a href="{{ nav_urls.home }}">Home</a></li>
-	<li><a href=""><i class="icon-list"></i> Tests</a>
+	<li><a href="{{ nav_urls.home }}"><i class="icon-list"></i> Tests</a>
 	{% if user %}
 		<ul>
 			<li><a href="{{ nav_urls.profile }}"><i class="icon-cog"></i> My Tests</a></li>

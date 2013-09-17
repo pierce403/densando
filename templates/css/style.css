@@ -167,6 +167,10 @@ display:block;
     margin:3px;
     padding:3px;
     background: #CCC;
+    clear:both;
+}
+.test-preview h5, .test-preview p {
+    display:inline;
 }
 
 textarea{

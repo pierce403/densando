@@ -1,4 +1,9 @@
 <a href="/t/{{test.id}}">
-	<p style="float:right;">{{ test.created|timesince:date }}{% if test.modified %}*{% endif %} old in {{ test.group }}<p>
+	<div style="float:right;">
+    <p>{{ test.created|timesince:date }}{% if test.modified %}*{% endif %} old in {{ test.group }}</p>
+    {% if mark.mark %}
+    <h5>  Mark: {{ mark.mark }}</h5>
+    {% endif %}
+    </div>
 	<h5>{{ test.title }}</h5>
 </a>

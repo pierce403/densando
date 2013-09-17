@@ -5,14 +5,14 @@
 <p>Hi, Welcome to Densando.  Your work is your reward.</p>
 </section>
 <section>
-    {% for test in recent_tests %}
+    {% for test in recent_tests.tests %}
 	<div class="front-page-test test-preview"> 
 		{% include "test.html" %}
 	</div>
     {% endfor %}
-    {% if next and more %}
+    {% if recent_tests.next and recent_tests.more %}
     <ul class="button-bar" style="width:100%;">
-        <li style="width:100%;"><a href="?next={{ next }}" style="width:100%;text-align:center;line-height:36px;">See More...</a></li>
+        <li style="width:100%;"><a href="?next={{ recent_tests.next }}" style="width:100%;text-align:center;line-height:36px;">See More...</a></li>
     </ul>
         
     {% endif %}
