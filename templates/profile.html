@@ -2,7 +2,33 @@
 
 {% block content %}
 
-<section class="col_6" >
+<section class="col_5" style="float:right;">
+<table style="margin: 6px;">
+	<thead><tr><th>test Group</th><th>Tests Taken</th><th>Level</th></tr></thead>
+	<tbody>
+        {% for group in grouped_marks %}
+        <tr><td>{{ group.name }}</td>
+        <td>You have taken {{ group.tests_taken|length }} test{{ group.tests_taken|pluralize }}.</td>
+        <td>{{ group.level|floatformat:"0" }}</td></tr>
+        {% endfor %}
+    </tbody></table>
+    <table>
+    <thead><tr><th colspan="2">{{ name }}'s Profile</th></tr></thead>
+    <tbody>
+		<tr><td>ID</td><td>{{ id }}</td></tr>
+		<tr><td>Display Name</td><td>{{ name }}</td></tr>
+		<tr><td>Member Since</td><td>{{ created }}</td></tr>
+		<tr><td>Biography</td><td>{{ bio }}</td></tr>
+		<tr><td>Tests Created</td><td>{{ my_tests.tests|length }}</td></tr>
+		<tr><td>Tests Completed</td><td>{{ completed.marks|length }}</td></tr>
+		<tr><td>Tests In-Progress</td><td>{{ in_progress.marks|length }}</td></tr>
+		<tr><td>Last Updated</td><td>{{ modified }}</td></tr>
+	</tbody>
+</table>
+</section>
+
+
+<section class="col_7" >
 	<header><h3>My Tests</h3></header>
 	{% for test in my_tests.tests %}
 		<div class="test-preview{%if test.num_marked != test.times_taken %} new-to-be-marked{% endif %}"> 
@@ -22,7 +48,7 @@
     {% endif %}
 </section>
 
-<section class="col_6" >
+<section class="col_7" >
 	<header><h3>In-Progress Tests</h3></header>
     {% for mark in in_progress.marks %}
 	<div class="test-preview"> 
@@ -42,7 +68,7 @@
     {% endif %}
 </section>
 
-<section class="col_6" >
+<section class="col_7" >
 	<header><h3>Completed Tests</h3></header>
 	{% for mark in completed.marks %}
 		<section class="test-preview">
@@ -61,24 +87,5 @@
         <a href="?next_completed={{ completed.next }}">See more...</a>
     {% endif %}
 </section>
-
-
-<section class="col_5">
-<table style="margin: 6px;">
-	<thead><tr><th colspan="2">{{ name }}'s Profile</th></tr></thead>
-	<tbody>
-		<tr><td>ID</td><td>{{ id }}</td></tr>
-		<tr><td>Display Name</td><td>{{ name }}</td></tr>
-		<tr><td>Member Since</td><td>{{ created }}</td></tr>
-		<tr><td>Biography</td><td>{{ bio }}</td></tr>
-		<tr><td>Tests Created</td><td>{{ my_tests.tests|length }}</td></tr>
-		<tr><td>Tests Completed</td><td>{{ completed.marks|length }}</td></tr>
-		<tr><td>Tests In-Progress</td><td>{{ in_progress.marks|length }}</td></tr>
-		<tr><td>Last Updated</td><td>{{ modified }}</td></tr>
-	</tbody>
-</table>
-</section>
-
-
 
 {% endblock content %}

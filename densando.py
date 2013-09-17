@@ -1,11 +1,11 @@
-# This forces divisions to return floats, which is the default behaviour in Python 3
-from __future__ import division
+from __future__ import division # This forces divisions to return floats, which is the default behaviour in Python 3, but not Python 2
 ## Imports from the Internet's greatest language
 import webapp2
 import datetime
 import os
 import logging
 import urlparse
+import math
 
 ## Imports from GAE
 from google.appengine.ext.webapp import template
@@ -355,6 +355,7 @@ def add_entity_to_template( template_values, in_entity, request=None, open=None 
     template_values['created'] = in_entity.created
     template_values['modified'] = in_entity.modified
     template_values['bio'] = in_entity.bio
+    template_values['grouped_marks'] = get_grouped_marks( ancestor_key=ndb.Key("Entity", in_entity.id) )
     ## Lists of Tests
     if request: 
         # This might be an odd way of defining this, but I want to have to ask for these lists
@@ -428,6 +429,33 @@ def get_marked( entity, num=None ):
         return mark_query.fetch()
     else:
         return mark_query.fetch( num )
+
+def get_grouped_marks( ancestor_key ):
+    """Returns a list of summary of the marks in each group
+       return { 'python':{'group_name':name, 'tests_taken':tests_taken, 'total_score': }, {...}, ... }
+    """
+    grouped_marks = []
+    groups = set()
+    mark_list = Mark.query( ancestor = ancestor_key ).order( -Mark.created ).fetch()
+    for mark in mark_list:
+        groups_length = len(groups)
+        groups.update( mark.test.group )
+        if groups_length < len(groups):
+            # If the set of groups got longer, add a new dict to the list
+            grouped_marks.append({
+                'name': mark.test.group,
+                'tests_taken': [ mark.test, ],
+                'total_score': mark.mark,
+            })
+        else:
+            for group in grouped_marks:
+                if group['name'] == mark.test.group:
+                    group['tests_taken'].append( mark.test )
+                    group['total_score'] += mark.mark
+    for group in grouped_marks:
+        group['level'] = math.floor( math.log( group['total_score'],2 ) )
+    return grouped_marks
+    
         
 def get_marks( num=None, start_cursor=None, ancestor_key=None, mark_complete=None):
     """Retrieves the num most recent marks, starting at start_cursor, only for the ancestor if provided, and only completed or not-completed tests if mark_complete is provided"""

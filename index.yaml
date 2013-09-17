@@ -20,6 +20,12 @@ indexes:
 - kind: Mark
   ancestor: yes
   properties:
+  - name: created
+    direction: desc
+
+- kind: Mark
+  ancestor: yes
+  properties:
   - name: test.created
     direction: desc
 
