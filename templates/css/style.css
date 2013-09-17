@@ -163,6 +163,17 @@ display:block;
 
 ****************************/
 
+progress {
+  color: #0063a6;
+  font-size: .6em;
+  line-height: 1.5em;
+  text-indent: .5em;
+  width: 15em;
+  height: 1.8em;
+  border: 1px solid #0063a6;
+  background: #fff;
+}
+
 .test-preview {
     margin:3px;
     padding:3px;

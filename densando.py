@@ -444,16 +444,17 @@ def get_grouped_marks( ancestor_key ):
             # If the set of groups got longer, add a new dict to the list
             grouped_marks.append({
                 'name': mark.test.group,
-                'tests_taken': [ mark.test, ],
+                'tests_taken': 0,
                 'total_score': mark.mark,
             })
         else:
             for group in grouped_marks:
                 if group['name'] == mark.test.group:
-                    group['tests_taken'].append( mark.test )
+                    group['tests_taken'] += 1
                     group['total_score'] += mark.mark
     for group in grouped_marks:
         group['level'] = math.floor( math.log( group['total_score'],2 ) )
+        group['level_progress'] = (math.log( group['total_score'],2 ) - group['level']) * 100
     return grouped_marks
     
         
