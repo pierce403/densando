@@ -3,8 +3,10 @@
 {% block content %}
 
 <section class="col_5" style="float:right;">
+
+{% if grouped_marks %}
 <table style="margin: 6px;">
-	<thead><tr><th>test Group</th><th>Total Score</th><th>Level</th><th>Progress</th></tr></thead>
+    <thead><tr><th>test Group</th><th>Total Score</th><th>Level</th><th>Progress</th></tr></thead>
 	<tbody>
         {% for group in grouped_marks %}
         <tr><td>{{ group.name }}</td>
@@ -13,8 +15,10 @@
         <td><meter id='level_progress' max='100' min="0" value={{ group.level_progress }}>{{ group.level_progress|floatformat:"-2" }}%</meter></td>
         </tr>
         {% endfor %}
-    </tbody></table>
-    <table>
+    </tbody>
+</table>
+{% endif %}
+<table style="margin: 6px;">
     <thead><tr><th colspan="2">{{ name }}'s Profile</th></tr></thead>
     <tbody>
 		<tr><td>Display Name</td><td>{{ name }}</td></tr>
@@ -33,13 +37,15 @@
 	<header><h3>Created Tests</h3></header>
 	{% for test in created_tests.tests %}
 		<div class="test-preview{%if test.num_marked != test.times_taken %} new-to-be-marked{% endif %}"> 
-		{% include "test.html" %}
-        <a href="{{ nav_urls.create_test }}/{{ test.id }}" class="button">Edit</a>
-        {% if test.open %}
-            <a href="{{ nav_urls.tests }}/{{ test.id }}/f" class="button">Close Test</a>
-        {% else %}
-            <a href="{{ nav_urls.tests }}/{{ test.id }}/t" class="button">Open Test</a>
-        {% endif %}
+            <div>{% include "test.html" %}</div>
+            <ul class="button-bar">
+                <li><a href="{{ nav_urls.create_test }}/{{ test.id }}" class="button">Edit</a></li>
+            {% if test.open %}
+                <li><a href="{{ nav_urls.tests }}/{{ test.id }}/f" class="button">Close Test</a></li>
+            {% else %}
+                <li><a href="{{ nav_urls.tests }}/{{ test.id }}/t" class="button">Open Test</a></li>
+            {% endif %}
+            </ul>
 		</div>
     {% empty %}
         <p>You haven't created any tests yet.</p>

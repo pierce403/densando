@@ -96,27 +96,23 @@ class CreateAlterTest( webapp2.RequestHandler ):
         template_values = get_template_values( self )
         user = users.get_current_user()
         try:
-            entity_query = Entity.query( Entity.id == user.user_id() ).fetch()
+            entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+            if not entity.display_name:              
+                self.redirect('/login')
         except:
             self.redirect('/login')
         else:
-            if len (entity_query)>0:
-                entity = entity_query[0]
-                test_query = Test.query( ancestor = ndb.Key('Entity', user.user_id() ) )
-                logging.info("TEST QUERY: %s, ENTITY QUERY: %s", test_query, entity_query )
-                if len(test_query.fetch()) > 0:
-                    logging.info("TEST QUERY: %s, LOOK FOR: %s", test_query, in_test_id )
-                    if in_test_id:
-                        in_query = test_query.filter( Test.id == in_test_id ).fetch(1)
-                        logging.info("Fetch: %s", in_query )
-                        try: # The test exists
-                            template_values = add_test_to_template( template_values, in_query[0] )
-                        except IndexError: # The test does not exist
-                            self.redirect("/")
-                
-                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
-                self.response.out.write( template.render( path, template_values ))
-        return
+            test_query = Test.query( ancestor = ndb.Key('Entity', user.user_id() ) )
+            if len(test_query.fetch()) > 0:
+                if in_test_id:
+                    in_query = test_query.filter( Test.id == in_test_id ).fetch(1)
+                    try: # The test exists
+                        template_values = add_test_to_template( template_values, in_query[0] )
+                    except IndexError: # The test does not exist
+                        self.redirect("/")
+            
+            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
+            self.response.out.write( template.render( path, template_values ))
 
         
     def post(self):
@@ -134,6 +130,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
             test.times_taken = 0
             test.total_score = 0
             test.num_marked = 0
+            test.average_rating = 0
             test.open = True
             
         test.author_id = user.user_id()
@@ -165,6 +162,7 @@ class UserProfile( webapp2.RequestHandler ):
             
             entity = entity_query[0]
             
+            
             if len(entity_query) > 0:
                 template_values = add_entity_to_template(template_values, entity, self.request)
                 for key, value in template_values.items():
@@ -180,20 +178,21 @@ class UserProfile( webapp2.RequestHandler ):
         
         
 class TestView( webapp2.RequestHandler ):
+    logger = logging.getLogger("TestView")
     
     def get(self, test_to_get=None):
         template_values = get_template_values( self )
         user = users.get_current_user()
 
         if not test_to_get:
-            logging.info("No test was provided for lookup")
+            self.logger.info("No test was provided for lookup")
             self.redirect('/')
             return
         else:
             try:
                 test = Test.query( Test.id == test_to_get).fetch(1)[0]
             except IndexError:
-                logging.info("Invalid Test ID")
+                self.logger.info("Invalid Test ID")
                 self.redirect('/')
             else:
                 if user:
@@ -202,10 +201,10 @@ class TestView( webapp2.RequestHandler ):
                         mark_query = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) )
                         mark = mark_query.filter( Mark.test.id == test.id ).fetch(1)[0]
                         template_values = add_mark_to_template( template_values, mark )
-                        if (datetime.datetime.now() - mark.modified) < datetime.timedelta(minutes=10) or mark.complete:
+                        if (datetime.datetime.now() - mark.modified) < datetime.timedelta(hours=24) or mark.complete:
                             template_values['locked'] = True
                     except IndexError:
-                        logging.info( "No mark found" )
+                        self.logger.info( "No mark found" )
                         template_values = add_test_to_template( template_values, test )
                     finally:    
                         if test.author_id == user.user_id():
@@ -214,9 +213,7 @@ class TestView( webapp2.RequestHandler ):
                             test_marker = Entity.query( Entity.id == user.user_id() ).fetch()[0]
                             template_values['to_be_marked'] = get_to_be_marked( test_marker, test )
                             template_values['name'] = test_marker.display_name
-                            template_values['current_user'] = user.user_id()
-                            logging.info( "test.author_id == user.user_id()" )
-                
+                            template_values['current_user'] = user.user_id()                
                 else: 
                     template_values['locked'] = True
                     template_values['visitor'] = True
@@ -245,6 +242,7 @@ class TestView( webapp2.RequestHandler ):
                 this_mark.test = test
                 this_mark.created = datetime.datetime.now()
                 this_mark.mark = None
+                this_mark.rating = 0
                 test.times_taken += 1
                 test.put()
                 
@@ -292,7 +290,20 @@ class MarkView( webapp2.RequestHandler ):
         self.redirect( path )
         return
         
-        
+class MarkRating( webapp2.RequestHandler ):
+    
+    def post(self):
+        user = users.get_current_user()
+        mark_id = self.request.get("mark_id")
+        try:
+            mark = Mark.query( ancestor = ndb.Key("Entity", user.user_id()) ).filter( Mark.id == mark_id ).fetch()[0]
+        except:
+            mark = None
+        if mark:
+            mark.rating = int( self.request.get("rating") )
+            mark.put()
+            
+        self.redirect("/t/%s" % mark_id)
         
             
 ## Look at all these glamorous MODELS
@@ -309,7 +320,8 @@ class Test( ndb.Model ):
     total_score = ndb.IntegerProperty( indexed=False )
     num_marked = ndb.IntegerProperty( indexed=False )
     open = ndb.BooleanProperty( indexed=True )
-
+    average_rating = ndb.FloatProperty( indexed=True )
+    
 class Entity( ndb.Model ):
     # About the user
     user = ndb.UserProperty( indexed=True )
@@ -330,6 +342,7 @@ class Mark( ndb.Model ):
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
     id = ndb.StringProperty( indexed=True )
+    rating = ndb.IntegerProperty( indexed=True )  
 
 ## Helper Functions
 
@@ -345,6 +358,7 @@ def add_mark_to_template( template_values, in_mark ):
     template_values['mark_id'] = in_mark.id
     template_values['mark_created'] = in_mark.created
     template_values['mark_modified'] = in_mark.modified
+    template_values['rating'] = in_mark.rating
     return template_values
     
 def add_entity_to_template( template_values, in_entity, request=None, open=None ):
@@ -387,27 +401,20 @@ def add_test_to_template( template_values, in_test ):
     template_values['num_marked'] = in_test.num_marked
     template_values['open'] = in_test.open
     if in_test.num_marked > 0:
-        template_values['average_mark'] = in_test.total_score / in_test.num_marked
-    
-
+        template_values['average_mark'] = template_values['total_score'] / template_values['num_marked']
+    mark_list = Mark.query( Mark.test.id == in_test.id ).filter( Mark.rating > 0 ).fetch()
+    template_values['num_ratings'] = len(mark_list)
+    if template_values['num_ratings'] > 0:
+        template_values['average_rating'] =  sum([mark.rating for mark in mark_list]) / template_values['num_ratings']
+        if template_values['average_rating'] != in_test.average_rating:
+            save_average_rating( in_test.id, template_values['average_rating'])
     return template_values
 
-# def get_completed_tests( entity, num=None, request=None ):
-    # mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
-    # mark_query = mark_query.filter( Mark.complete == True ).order( -Mark.test.created )
-    # if not num:
-        # return [mark.test for mark in mark_query.fetch()]
-    # else:
-        # return mark_query.fetch( num )    
+def save_average_rating( test_id, avg ):
+    test = Test.query( Test.id == test_id ).fetch(1)[0]
+    test.average_rating = avg
+    test.put()
     
-# def get_in_progess_tests( entity, num=None, request=None ):
-    # mark_query = Mark.query( ancestor = ndb.Key('Entity', entity.id) )
-    # mark_query = mark_query.filter( Mark.complete == False )
-    # if not num:
-        # return [mark.test for mark in mark_query.fetch()]
-    # else:
-        # return mark_query.fetch( num )  
-
 def get_to_be_marked( entity, test=None, num=None ):
     """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
     mark_query = Mark.query( Mark.marker_entity.id == entity.id )
@@ -436,7 +443,7 @@ def get_grouped_marks( ancestor_key ):
     """
     grouped_marks = []
     groups = set()
-    mark_list = Mark.query( ancestor = ancestor_key ).order( -Mark.created ).fetch()
+    mark_list = Mark.query( ancestor = ancestor_key ).filter( Mark.complete == True ).order( -Mark.created ).fetch()
     for mark in mark_list:
         groups_length = len(groups)
         groups.update( mark.test.group )
@@ -452,9 +459,15 @@ def get_grouped_marks( ancestor_key ):
                 if group['name'] == mark.test.group:
                     group['tests_taken'] += 1
                     group['total_score'] += mark.mark
+
     for group in grouped_marks:
-        group['level'] = math.floor( math.log( group['total_score'],2 ) )
-        group['level_progress'] = (math.log( group['total_score'],2 ) - group['level']) * 100
+        if group['total_score'] is not None:
+            group['level'] = math.floor( math.log( float(group['total_score']),2 ) )
+            group['level_progress'] = (math.log( group['total_score'],2 ) - group['level']) * 100
+        else:
+            group['total_score'] = 0
+            group['level'] = 1
+            group['level_progress'] = 0
     return grouped_marks
     
         
@@ -548,7 +561,8 @@ app = webapp2.WSGIApplication( [
     ( '/t/([^/]+)', TestView ),
     ( '/t', TestView ),
     ( '/m/([^/]+)', MarkView ),
-    ( '/m', MarkView ),
+    ( '/m', MarkView ),    
+    ( '/r', MarkRating ),
 ], debug = True)
 
 def main():

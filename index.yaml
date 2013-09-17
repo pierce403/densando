@@ -11,6 +11,18 @@ indexes:
 # your application using appcfg.py.
 
 - kind: Mark
+  properties:
+  - name: test.id
+  - name: rating
+
+- kind: Mark
+  ancestor: yes
+  properties:
+  - name: complete
+  - name: created
+    direction: desc
+
+- kind: Mark
   ancestor: yes
   properties:
   - name: complete

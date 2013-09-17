@@ -5,9 +5,21 @@
     </aside>
     <h5>Your response has been marked</h5>
     <p>Response from test author:<br/>{{ comment|linebreaks }}</p>
-    <p>Your score is <strong>{{ mark }}</strong>/10.
-    
-    <form action="/rate/{{ mark_id }}" method="POST">
-    <textarea id="rating"></textarea>
+    <p>Your score is <strong>{{ mark }}</strong>/10.</p>
+    {% if not rating %}
+    <form action="/r" method="POST">
+        <fieldset><legend>Rate This Test</legend>
+        <input type="hidden" name="mark_id" value="{{ mark_id }}">
+        <select name="rating">
+            <option value="{{ rating }}">{{ rating }}</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+        </select>
+        <button type="submit">Rate</button>
+        </fieldset>
     </form>
+    {% endif %}
 </section>

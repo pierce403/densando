@@ -9,14 +9,16 @@
 
 
 <section class="float:left;">
+    
 	<header style="overflow:auto;"><h1>{{ title }}</h1></header>
 	<aside>
-		<h6>{{ test_id }} - {{ group }}</h2>
+		<h6>Test Group: {{ group }}</h6>
 		<h6>Last Created: {{ test_created }} -- Last Modified: {{ test_modified }}</h6>
 	</aside>
+    
 	<p style="clear:left;">{{ description|linebreaks }}</p>
 
-	<form action="/t" method="POST" style="">
+	<form action="/t" method="POST">
         <input type="hidden" name="test_id" value="{{ test_id }}" />
         <input type="hidden" name="author_id" value="{{ author_id }}" />
         <input type="hidden" name="mark_id" value="{{ mark_id }}" />
@@ -39,29 +41,23 @@
                     {% endif %}
                 {% endif %}
             {% endif %}
-        </div>
-        
+        </div>    
         {% endif %}
-        {% if mark %}
-            {% include "mark.html" %}
-        {% else %}
         {% if current_user != author_id %}
-            <textarea id="response" name="response" {% if locked %}disabled{% endif %} >{% if response %}{{ response }}{% endif %}</textarea><br/>
-            <button type="submit" {% if current_user == author_id or locked %}disabled{% endif %}>Submit Button</button>
-        {% endif %}
-        {% endif %}
-	</form>
+        <textarea id="response" name="response" {% if locked %}disabled{% endif %} >{% if response %}{{ response }}{% endif %}</textarea><br/>
+        <button type="submit" {% if current_user == author_id or locked %}disabled{% endif %}>Submit Button</button>
+    {% endif %}
+    </form>
+    {% if mark %}
+        {% include "mark.html" %}
+    {% endif %}
 </section>
 
 
 {% if to_be_marked %}
 	<section class="col_12">
-		<header><h3>{{ to_be_marked_cnt }} Responses Waiting for Marking...</h3></header>
-		<p> {{ to_be_marked|length }} </p>
 		{% for mark in to_be_marked %}
-			<div>
-			{% include "mark_detail.html" %}
-			</div>
+			<div>{% include "mark_detail.html" %}</div>
 		{% endfor %}
 	</section>
 {% endif %}
