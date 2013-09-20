@@ -166,8 +166,6 @@ class UserProfile( webapp2.RequestHandler ):
                       
             if len(entity_query) > 0:
                 template_values = add_entity_to_template(template_values, entity, self.request)
-                for key, value in template_values.items():
-                    logging.error( "%s : %s", key, value )
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'profile.html' ) )
                 self.response.out.write( template.render( path, template_values ))
                 return
