@@ -3,7 +3,9 @@
 {% block content %}
 
 <section class="col_5" style="float:right;">
-
+<img src="{{ gravatar }}" alt="Your Gravatar" style="float:left;"/>
+<h2>&nbsp;{{ name }}</h2>
+{% if bio %}<p>{{ bio }}</p>{% endif %}
 {% if grouped_marks %}
 <table style="margin: 6px;">
     <thead><tr><th>test Group</th><th>Total Score</th><th>Level</th><th>Progress</th></tr></thead>
@@ -18,9 +20,6 @@
     </tbody>
 </table>
 {% endif %}
-<img src="{{ gravatar }}" alt="Your Gravatar" style="float:left;"/>
-<h2>&nbsp;{{ name }}</h2>
-{% if bio %}<p>{{ bio }}</p>{% endif %}
 <table style="margin: 6px;">
     <thead><tr>
         <th>Tests Created</th>
