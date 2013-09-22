@@ -1,15 +1,17 @@
-
 <table>
     <thead>
-        <tr><th colspan=2><h4>Statistics</h4></th></tr>
+        <tr><th colspan=2><h4>{{ group|capfirst }} Statistics</h4></th></tr>
     </thead>
     <tbody>
+        <tr><td>Created By</td><td colspan="2"><a href="/u/{{ author_id }}">{{ author_name }}</a></td></tr>
         <tr><td>Times Taken</td><td>{{ times_taken }}</td><td></td></tr>
         {% if average_mark %}
-        <tr><td>Average Mark</td><td>{{ average_mark|floatformat:"2" }} / 10</td><td>{{ num_marked }} marked</td></tr>
+            <tr><td>Average Mark</td><td>{{ average_mark|floatformat:"2" }} / 5</td><td>{{ num_marked }} marked</td></tr>
         {% endif %}
         {% if average_rating %}
-        <tr><td>Average Rating</td><td>{{ average_rating|floatformat:"2" }} / 5</td><td>{{ num_ratings }} rating{{ num_ratings|pluralize }}</td></tr>
+            <tr><td>Average Rating</td><td>{{ average_rating|floatformat:"2" }} / 5</td><td>{{ num_ratings }} rating{{ num_ratings|pluralize }}</td></tr>
         {% endif %}
+        <tr><td>Created</td><td colspan="2">{{ test_created }}</td></tr>
+        <tr><td>Modified</td><td colspan="2">{{ test_modified }}</td></tr>
     </tbody>
 </table>

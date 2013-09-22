@@ -11,7 +11,7 @@ import urllib, hashlib
 
 ## Imports from GAE
 from google.appengine.ext.webapp import template
-from google.appengine.api import users, memcache
+from google.appengine.api import users, memcache, mail
 from google.appengine.ext import ndb
 from google.appengine.datastore.datastore_query import Cursor
 
@@ -158,13 +158,23 @@ class UserProfile( webapp2.RequestHandler ):
                 logging.info("Fetch this humanoid's profile! (%s)", user.user_id() )
                 entity_query = Entity.query( Entity.id == user.user_id() ).fetch() 
             else:
-                logging.info("Fetch this humanoid's info! (%s)", user.user_id() )
                 logging.info("Fetch profile for other humanoid! (%s)", profile_to_get )
+                logging.info("Getting Profile by id")
                 entity_query = Entity.query( Entity.id == profile_to_get ).fetch()
-            
+                if len(entity_query) < 1:
+                    logging.info("Getting Profile by display_name")
+                    entity_query = Entity.query( Entity.display_name == profile_to_get ).order(-Entity.created).fetch()
+                    
+            if len(entity_query) < 1:
+                logging.info("Tried searching for user using '%s', but they don't exist", profile_to_get)
+                self.redirect('/')
+                return
+                
             entity = entity_query[0]
                       
             if len(entity_query) > 0:
+                if user.user_id() == entity.id:
+                    template_values['this_user'] = True
                 template_values = add_entity_to_template(template_values, entity, self.request)
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'profile.html' ) )
                 self.response.out.write( template.render( path, template_values ))
@@ -241,6 +251,7 @@ class TestView( webapp2.RequestHandler ):
                 this_mark.test = test
                 this_mark.created = datetime.datetime.now()
                 this_mark.mark = None
+                this_mark.rated = False
                 this_mark.rating = 0
                 test.times_taken += 1
                 test.put()
@@ -251,6 +262,7 @@ class TestView( webapp2.RequestHandler ):
             this_mark.id = test_id + user.user_id()
             this_mark.marker_entity = Entity.query( Entity.id == author_id ).fetch()[0]
             this_mark.taker_entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+            send_email( this_mark.marker_entity.user.email() , test,  "Test-Answer")
             this_mark.put()
 
         self.redirect( '/t/%s' % test_id )
@@ -265,19 +277,17 @@ class MarkView( webapp2.RequestHandler ):
         author_id = self.request.get("author_id")
         test_id = self.request.get("test_id")
         mark_id = self.request.get("mark_id")
+        address = self.request.get("mark_address")
         comment = self.request.get("comment")
-        response = self.request.get("response")
         mark = self.request.get("mark")
         
         author_entity = Entity.query( Entity.id == author_id ).fetch(1)[0]
-        user_entity = Entity.query( Entity.id == user.user_id() ).fetch(1)[0]
         test_entity = Test.query( Test.id == test_id ).fetch(1)[0]        
         mark_entity = Mark.query( ancestor = ndb.Key("Entity", mark_id) )
         mark_entity = mark_entity.filter( Mark.test.id == test_id ).fetch(1)[0]
  
         mark_entity.marker_entity = author_entity
         mark_entity.test = test_entity
-        mark_entity.response = response
         mark_entity.comment = comment
         mark_entity.mark = int(mark)        
         test_entity.total_score += mark_entity.mark
@@ -285,6 +295,7 @@ class MarkView( webapp2.RequestHandler ):
         mark_entity.modified = datetime.datetime.now()
         mark_entity.complete = True
         mark_entity.put()
+        send_email( address, test_entity, "Answer-Response")
         test_entity.put()
         self.redirect( path )
         return
@@ -294,12 +305,14 @@ class MarkRating( webapp2.RequestHandler ):
     def post(self):
         user = users.get_current_user()
         mark_id = self.request.get("mark_id")
+        rating = int(self.request.get("rating"))
         try:
             mark = Mark.query( ancestor = ndb.Key("Entity", user.user_id()) ).filter( Mark.id == mark_id ).fetch()[0]
         except:
             mark = None
         if mark:
-            mark.rating = int( self.request.get("rating") )
+            mark.rating = int( rating )
+            mark.rated = True
             mark.put()
             
         self.redirect("/t/%s" % mark_id)
@@ -342,14 +355,17 @@ class Mark( ndb.Model ):
     modified = ndb.DateTimeProperty( )
     id = ndb.StringProperty( indexed=True )
     rating = ndb.IntegerProperty( indexed=True )  
+    rated = ndb.BooleanProperty( indexed=True )
 
 ## Helper Functions
 
 def add_mark_to_template( template_values, in_mark ):
     """Combines Mark object properties into template_values"""
-    logging.debug(in_mark)
     template_values = add_entity_to_template( template_values, in_mark.marker_entity )
-    template_values = add_test_to_template( template_values, in_mark.test )
+    print in_mark
+    # the updated_test value is required here or else the Test that is returned is the Test taken, not the current test
+    updated_test = Test.query( Test.id == in_mark.test.id ).fetch(1)[0]
+    template_values = add_test_to_template( template_values, updated_test )
     template_values['complete'] = in_mark.complete
     template_values['response'] = in_mark.response
     template_values['comment'] = in_mark.comment
@@ -358,11 +374,11 @@ def add_mark_to_template( template_values, in_mark ):
     template_values['mark_created'] = in_mark.created
     template_values['mark_modified'] = in_mark.modified
     template_values['rating'] = in_mark.rating
+    template_values['rated'] = in_mark.rated
     return template_values
     
 def add_entity_to_template( template_values, in_entity, request=None, open=None ):
     """Combines Entity object properties into template_values"""
-    logging.debug( in_entity )
     template_values['name'] = in_entity.display_name
     template_values['id'] = in_entity.id
     template_values['created'] = in_entity.created
@@ -388,7 +404,6 @@ def add_entity_to_template( template_values, in_entity, request=None, open=None 
     
 def add_test_to_template( template_values, in_test ):
     """Combines Test object properties into template_values"""
-    #logging.info( in_test )
     template_values['test_id'] = in_test.id
     template_values['title'] = in_test.title
     template_values['description'] = in_test.description
@@ -396,13 +411,14 @@ def add_test_to_template( template_values, in_test ):
     template_values['test_created'] = in_test.created
     template_values['test_modified'] = in_test.modified
     template_values['author_id'] = in_test.author_id
+    template_values['author_name'] = Entity.query( Entity.id == in_test.author_id ).fetch(1)[0].display_name
     template_values['times_taken'] = in_test.times_taken
     template_values['total_score'] = in_test.total_score
     template_values['num_marked'] = in_test.num_marked
     template_values['open'] = in_test.open
     if in_test.num_marked > 0:
         template_values['average_mark'] = template_values['total_score'] / template_values['num_marked']
-    mark_list = Mark.query( Mark.test.id == in_test.id ).filter( Mark.rating > 0 ).fetch()
+    mark_list = Mark.query( Mark.test.id == in_test.id ).filter( Mark.rating > -1 ).fetch()
     template_values['num_ratings'] = len(mark_list)
     if template_values['num_ratings'] > 0:
         template_values['average_rating'] =  sum([mark.rating for mark in mark_list]) / template_values['num_ratings']
@@ -461,7 +477,7 @@ def get_grouped_marks( ancestor_key ):
                     group['total_score'] += mark.mark
 
     for group in grouped_marks:
-        if group['total_score'] is not None:
+        if group['total_score'] is not None and group['total_score'] > 0:
             group['level'] = math.floor( math.log( float(group['total_score']),2 ) )
             group['level_progress'] = (math.log( group['total_score'],2 ) - group['level']) * 100
         else:
@@ -547,7 +563,33 @@ def get_navigation_urls( self, user ):
         navigation_urls['login'] = users.create_login_url( '/login' )
     return navigation_urls
 
+def send_email( to, test, type ):
+    """Sends an email"""
+    print "sending email to %s" % to
+    site_name = "Densando"
+    site_address = "densandodev.appspot.com"
+    address_local = "do_not_reply"
+    address_suffix = "densandodev.appspotmail.com"
     
+    if type == "Test-Answer":
+        print "Test-Answer"
+        subject = "Someone has submitted an answer to %s" % test.title
+    elif type == "Answer-Response":
+        print "Answer-Response"
+        subject = "Your answer to %s has been marked" % test.title
+ 
+    email_message = mail.EmailMessage(
+        sender = "%s <%s@%s>" % ( site_name, address_local, address_suffix ),
+        subject = subject,
+        to = to,
+        body = subject + "\n\n" + site_address + "/t/" + test.id,
+    )
+    email_message.send()
+    print "email sent"
+    return True
+    # except:
+        # print "email failed", err
+        # return False
     
 # Run Runaway!
 app = webapp2.WSGIApplication( [

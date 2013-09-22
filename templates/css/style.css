@@ -183,6 +183,7 @@ meter {
 textarea{
     width:100%;
     height:120px;
+    resize:vertical;
 }
 
 .new-to-be-marked {

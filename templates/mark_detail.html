@@ -2,10 +2,11 @@
 	<input type="hidden" name="author_id" value="{{ user_id }}">
 	<input type="hidden" name="test_id" value="{{ test_id }}">
 	<input type="hidden" name="mark_id" value="{{ mark.taker_entity.id }}" />
-	
+	<input type="hidden" name="mark_address" value="{{ mark.taker_entity.user }}" />
+    
 	<fieldset class="mark-detail">
 	<legend>{{ title }}</legend>
-    <p><strong>{{ mark.taker_entity.display_name }}</strong> has responded to your test:</p>
+    <p><strong><a href="/u/{{ mark.taker_entity.id }}">{{ mark.taker_entity.display_name }}</strong></a> has responded to your test:</p>
 	<p>{{ mark.response|linebreaks }}</p>
 	
 	<label for="comment">Comments</label>
@@ -13,17 +14,12 @@
 	
 	<label for="mark">Mark</label>
 	<select name="mark" required>
-		<option value=""></option>
+		<option value="0">0</option>
 		<option value="1">1</option>
 		<option value="2">2</option>
 		<option value="3">3</option>
 		<option value="4">4</option>
 		<option value="5">5</option>
-		<option value="6">6</option>
-		<option value="7">7</option>
-		<option value="8">8</option>
-		<option value="9">9</option>
-		<option value="10">10</option>
 	</select>
 
 	<button type="submit">Submit</button>

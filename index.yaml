@@ -10,6 +10,12 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: Entity
+  properties:
+  - name: display_name
+  - name: created
+    direction: desc
+
 - kind: Mark
   properties:
   - name: test.id
