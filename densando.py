@@ -99,40 +99,6 @@ class LoginHandler( webapp2.RequestHandler ):
             self.response.out.write( template.render( path, template_values ))
 
 
-        print """entity = entity_query[0]
-                name_query = Entity.query( Entity.display_name == user.user_id() ).fetch()
-
-                try:
-                    display_name = self.request.get( 'display_name' )
-                except:
-                    # If you don't pass in a name, you don't achieve anything
-                    self.redirect('/')
-                self.logger.info( "display name= %s", display_name )
-
-                if len(name_query) > 0:
-                    entity.display_name = display_name
-                    entity.bio = self.request.get( 'bio' )
-                    entity.modified = datetime.datetime.now()
-                    entity.put()
-                    self.redirect('/')
-                else:
-                    self.redirect('/login')
-            else:
-                # the entity for this user hasn't been created yet
-                self.logger.info( user )
-                entity = Entity(
-                    user = user,
-                    id = user.user_id(),
-                    created = datetime.datetime.now(),
-                )
-                self.logger.info( entity )
-                entity.put()
-                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
-                self.response.out.write( template.render( path, template_values ))
-        else:
-            self.redirect( users.create_login_url( '/login' ) )
-        return"""
-
 class CreateAlterTest( webapp2.RequestHandler ):
     
     def get(self, in_test_id=None):
