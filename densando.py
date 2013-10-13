@@ -75,17 +75,22 @@ class RegistrationHandler( webapp2.RequestHandler ):
                 created = datetime.datetime.now(),
             )
 
-        posted_name = self.request.get( 'display_name' ).lower()
-        if len(posted_name) == 0 or len(posted_name) > 16:
+        posted_name = self.request.get( 'display_name' )
+        import re
+        valid = False if re.match('[a-z0-9]+$', posted_name) is None else True
+        print "VALID:", valid
+
+        if not valid or len(posted_name) == 0 or len(posted_name) > 16 or posted_name is not posted_name.lower():
             template_values['error'] = "Usernames must be 16 or fewer alphanumeric characters [a-z0-9]."
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
             self.response.out.write( template.render( path, template_values ))
+            return
 
         users_with_name = Entity.query( Entity.display_name == posted_name ).count()
         if users_with_name == 0 or entity.display_name == posted_name:
             # Update values
             print "POSTED:",posted_name
-            print "Entity:", entity.display_name
+            print "Entity:",entity.display_name
             entity.display_name = posted_name if posted_name else entity.display_name
             entity.bio = self.request.get( 'bio' ) if len(self.request.get( 'bio' )) > 0 else "I am mysterious."
             # Save and visit
@@ -383,6 +388,7 @@ class Mark( ndb.Model ):
     rating = ndb.IntegerProperty( indexed=True )  
     rated = ndb.BooleanProperty( indexed=True )
 
+
 ## Helper Functions
 
 def add_mark_to_template( template_values, in_mark ):
@@ -448,7 +454,7 @@ def add_test_to_template( template_values, in_test ):
     template_values['num_ratings'] = len(mark_list)
     if template_values['num_ratings'] > 0:
         template_values['average_rating'] =  sum([mark.rating for mark in mark_list]) / template_values['num_ratings']
-        if template_values['average_rating'] != in_test.average_rating:
+        if template_values['average_rating'] is not in_test.average_rating:
             save_average_rating( in_test.id, template_values['average_rating'])
     return template_values
    
