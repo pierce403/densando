@@ -6,8 +6,9 @@ import os
 import logging
 import urlparse
 import math
+import time
 # for encoding urls and generating md5 hashes
-import urllib, hashlib
+import hashlib
 
 ## Imports from GAE
 from google.appengine.ext.webapp import template
@@ -60,22 +61,62 @@ class LoginHandler( webapp2.RequestHandler ):
             self.logger.info(user)
             entity_query = Entity.query( Entity.id == user.user_id() ).fetch()
             if len(entity_query) > 0:
-                entity = entity_query[0]
-                if not entity.display_name:
+                self.redirect('/u/%s' % entity_query[0].display_name )
+            else:
+                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
+                self.response.out.write( template.render( path, template_values ))
+        else:
+            self.redirect('/')
+
+    def post(self):
+        template_values = get_template_values( self )
+        user = users.get_current_user()
+        try:
+            entity_query = Entity.query( Entity.id == user.user_id() ).fetch()
+            entity = entity_query[0]
+        except IndexError:
+            # This user must not exist yet, so create one
+            entity = Entity(
+                user = user,
+                id = user.user_id(),
+                created = datetime.datetime.now(),
+            )
+
+        posted_name = self.request.get( 'display_name' )
+        users_with_name = Entity.query( Entity.display_name == posted_name ).count()
+
+        if users_with_name == 0:
+            # Update values
+            entity.display_name = posted_name
+            entity.bio = self.request.get( 'bio' ) if len(self.request.get( 'bio' )) > 0 else "I am mysterious."
+            # Save and visit
+            entity.put()
+            time.sleep(0.1)         # The user doesn't exist for a short period of time after put()
+            self.redirect('/u/%s' % entity.display_name )
+        else:
+            template_values['error'] = "That username is in use.  Please choose again."
+            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
+            self.response.out.write( template.render( path, template_values ))
+
+
+        print """entity = entity_query[0]
+                name_query = Entity.query( Entity.display_name == user.user_id() ).fetch()
+
+                try:
                     display_name = self.request.get( 'display_name' )
-                else:
-                    display_name = entity.display_name
+                except:
+                    # If you don't pass in a name, you don't achieve anything
+                    self.redirect('/')
                 self.logger.info( "display name= %s", display_name )
-                if display_name:
+
+                if len(name_query) > 0:
                     entity.display_name = display_name
                     entity.bio = self.request.get( 'bio' )
                     entity.modified = datetime.datetime.now()
                     entity.put()
+                    self.redirect('/')
                 else:
-                    path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
-                    self.response.out.write( template.render( path, template_values ))
-                    return
-                self.redirect('/')
+                    self.redirect('/login')
             else:
                 # the entity for this user hasn't been created yet
                 self.logger.info( user )
@@ -90,7 +131,7 @@ class LoginHandler( webapp2.RequestHandler ):
                 self.response.out.write( template.render( path, template_values ))
         else:
             self.redirect( users.create_login_url( '/login' ) )
-        return
+        return"""
 
 class CreateAlterTest( webapp2.RequestHandler ):
     

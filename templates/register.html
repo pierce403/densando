@@ -2,11 +2,17 @@
 
 {% block content %}
 
-<form action="/login" method="get">
+<form action="/login" method="post">
+    {% if error %}
+    <div class="notice error"><p>{{ error }}</p></div>
+    {% endif %}
     <label for="display_name">You must select a username:</label>
-    <input type="text" name="display_name" default="Display Name" required></input><br/>
+    <input type="text" name="display_name" default="Display Name" required></input>
+    <div class="notice success">
+        <p>Usernames should all be lowercase alpha and numbers, with a maximum of 16 characters.</p>
+    </div>
     <label for="bio">Please provide some information about yourself to the community:</label>
-    <textarea name="bio" ></textarea>
+    <textarea name="bio"></textarea>
     <button type="submit">Submit Button</button>
 </form>
 
