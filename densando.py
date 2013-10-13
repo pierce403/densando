@@ -50,10 +50,7 @@ class OpenCloseTest( webapp2.RequestHandler ):
             
         self.redirect("/u")
        
-        
-class LoginHandler( webapp2.RequestHandler ):
-    logger = logging.getLogger("LoginHandler")
-    
+class RegistrationHandler( webapp2.RequestHandler ):
     def get(self):
         template_values = get_template_values( self )
         user = users.get_current_user()
@@ -62,6 +59,7 @@ class LoginHandler( webapp2.RequestHandler ):
             self.response.out.write( template.render( path, template_values ))
         else:
             self.redirect('/')
+
 
     def post(self):
         template_values = get_template_values( self )
@@ -77,9 +75,13 @@ class LoginHandler( webapp2.RequestHandler ):
                 created = datetime.datetime.now(),
             )
 
-        posted_name = self.request.get( 'display_name' )
-        users_with_name = Entity.query( Entity.display_name == posted_name ).count()
+        posted_name = self.request.get( 'display_name' ).lower()
+        if len(posted_name) == 0 or len(posted_name) > 16:
+            template_values['error'] = "Usernames must be 16 or fewer alphanumeric characters [a-z0-9]."
+            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
+            self.response.out.write( template.render( path, template_values ))
 
+        users_with_name = Entity.query( Entity.display_name == posted_name ).count()
         if users_with_name == 0 or entity.display_name == posted_name:
             # Update values
             print "POSTED:",posted_name
@@ -94,6 +96,26 @@ class LoginHandler( webapp2.RequestHandler ):
             template_values['error'] = "That username is in use.  Please choose again."
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
             self.response.out.write( template.render( path, template_values ))
+
+
+class LoginHandler( webapp2.RequestHandler ):
+    logger = logging.getLogger("LoginHandler")
+    
+    def get(self):
+        template_values = get_template_values( self )
+        user = users.get_current_user()
+        try:
+            entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+            if not entity.display_name:
+                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
+                self.response.out.write( template.render( path, template_values ))
+            else:
+                self.redirect('/u')
+        except IndexError:
+            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
+            self.response.out.write( template.render( path, template_values ))
+
+
 
 
 class CreateAlterTest( webapp2.RequestHandler ):
@@ -547,11 +569,15 @@ def get_template_values( self ):
         'nav_urls'  : get_navigation_urls( self, user ),
     }
     if user:
-        entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+        try:
+            entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+            template_values['user_name'] = entity.display_name
+            template_values['bio'] = entity.bio
+        except:
+            # User isn't an entity yet
+            pass
         template_values['user'] = user
         template_values['user_id'] = user.user_id()
-        template_values['user_name'] = entity.display_name
-        template_values['bio'] = entity.bio
         template_values['nav_grav'] = "http://www.gravatar.com/avatar/" + hashlib.md5(user.email().lower()).hexdigest() + "?s=36"
     else:
         template_values['user'] = False
@@ -600,6 +626,8 @@ def send_email( to, test, type ):
 app = webapp2.WSGIApplication( [
     ( '/'  , MainPage ),
     ( '/login', LoginHandler ),
+    ( '/register', RegistrationHandler ),
+    ( '/preferences', RegistrationHandler ),
     ( '/c/([^/]+)', CreateAlterTest ),
     ( '/c', CreateAlterTest ),
     ( '/u/([^/]+)', UserProfile ),
