@@ -548,6 +548,7 @@ def get_template_values( self ):
     template_values= {
         'date'      : datetime.datetime.now(),
         'nav_urls'  : get_navigation_urls( self, user ),
+        'nav_grav'  : "http://www.gravatar.com/avatar/" + hashlib.md5(user.email().lower()).hexdigest() + "?s=36"
     }
     if user:
         template_values['user'] = user

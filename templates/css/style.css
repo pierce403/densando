@@ -189,3 +189,9 @@ textarea{
 .new-to-be-marked {
     background-color:#eedd82;
 }
+
+.menu li a.image {
+    padding:4px 20px 4px 4px;
+    line-height:36px;
+    // padding-top + padding-bottom + line-height = nav_height (44px)
+}
