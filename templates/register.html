@@ -7,13 +7,19 @@
     <div class="notice error"><p>{{ error }}</p></div>
     {% endif %}
     <label for="display_name">You must select a username:</label>
-    <input type="text" name="display_name" default="Display Name" required></input>
+    <input type="text" id="display_name" name="display_name" required{% if user_name %} disabled{% endif %}/>
     <div class="notice success">
         <p>Usernames should all be lowercase alpha and numbers, with a maximum of 16 characters.</p>
     </div>
     <label for="bio">Please provide some information about yourself to the community:</label>
-    <textarea name="bio"></textarea>
+    <textarea name="bio" id="bio"></textarea>
     <button type="submit">Submit Button</button>
 </form>
+
+<script type="text/javascript">
+// Setting values into the form fields for existing Tests
+document.getElementById('bio').value = "{{ bio }}";
+document.getElementById('display_name').value = "{{ user_name }}";
+</script>
 
 {% endblock content %}

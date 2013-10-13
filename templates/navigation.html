@@ -8,6 +8,11 @@
 		<li style="float:right;"><a href="{{ nav_urls.logout }}"><i class="icon-signout"></i> Logout</a></li>
         <li style="float:right;">
             <a class="image" href="{{ nav_urls.profile }}"><img src="{{ nav_grav }}" alt="Your Gravatar"/> Profile</a>
+            <ul>
+                <li>
+                    <a href="/login">Preferences</a>
+                </li>
+            </ul>
         </li>
 	{% else %}
 		<li style="float:right;"><a href="{{ nav_urls.login }}"><i class="icon-signin"></i> Login</a></li>

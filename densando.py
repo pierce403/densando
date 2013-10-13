@@ -58,13 +58,8 @@ class LoginHandler( webapp2.RequestHandler ):
         template_values = get_template_values( self )
         user = users.get_current_user()
         if user:
-            self.logger.info(user)
-            entity_query = Entity.query( Entity.id == user.user_id() ).fetch()
-            if len(entity_query) > 0:
-                self.redirect('/u/%s' % entity_query[0].display_name )
-            else:
-                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
-                self.response.out.write( template.render( path, template_values ))
+            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
+            self.response.out.write( template.render( path, template_values ))
         else:
             self.redirect('/')
 
@@ -85,9 +80,11 @@ class LoginHandler( webapp2.RequestHandler ):
         posted_name = self.request.get( 'display_name' )
         users_with_name = Entity.query( Entity.display_name == posted_name ).count()
 
-        if users_with_name == 0:
+        if users_with_name == 0 or entity.display_name == posted_name:
             # Update values
-            entity.display_name = posted_name
+            print "POSTED:",posted_name
+            print "Entity:", entity.display_name
+            entity.display_name = posted_name if posted_name else entity.display_name
             entity.bio = self.request.get( 'bio' ) if len(self.request.get( 'bio' )) > 0 else "I am mysterious."
             # Save and visit
             entity.put()
@@ -548,11 +545,14 @@ def get_template_values( self ):
     template_values= {
         'date'      : datetime.datetime.now(),
         'nav_urls'  : get_navigation_urls( self, user ),
-        'nav_grav'  : "http://www.gravatar.com/avatar/" + hashlib.md5(user.email().lower()).hexdigest() + "?s=36"
     }
     if user:
+        entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
         template_values['user'] = user
         template_values['user_id'] = user.user_id()
+        template_values['user_name'] = entity.display_name
+        template_values['bio'] = entity.bio
+        template_values['nav_grav'] = "http://www.gravatar.com/avatar/" + hashlib.md5(user.email().lower()).hexdigest() + "?s=36"
     else:
         template_values['user'] = False
     return template_values
@@ -595,10 +595,7 @@ def send_email( to, test, type ):
     email_message.send()
     print "email sent"
     return True
-    # except:
-        # print "email failed", err
-        # return False
-    
+
 # Run Runaway!
 app = webapp2.WSGIApplication( [
     ( '/'  , MainPage ),
