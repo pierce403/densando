@@ -175,7 +175,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
         test.title = self.request.get( 'title' )
         test.description = self.request.get( 'description' )
         test.group = self.request.get( 'group' )
-        test.level = self.request.get( 'level' )
+        test.level = int(self.request.get( 'level' ))
         test.put()
 
         # Keep track of which test groups a user has used
@@ -335,7 +335,7 @@ class MarkView( webapp2.RequestHandler ):
         mark_entity.marker_entity = author_entity
         mark_entity.test = test_entity
         mark_entity.comment = comment
-        mark_entity.mark = int(mark)        
+        mark_entity.mark = int(mark) * test_entity.level
         test_entity.total_score += mark_entity.mark
         test_entity.num_marked += 1
         mark_entity.modified = datetime.datetime.now()
@@ -455,6 +455,7 @@ def add_test_to_template( template_values, in_test ):
     template_values['title'] = in_test.title
     template_values['description'] = in_test.description
     template_values['group'] = in_test.group
+    template_values['level'] = in_test.level
     template_values['test_created'] = in_test.created
     template_values['test_modified'] = in_test.modified
     template_values['author_id'] = in_test.author_id

@@ -1,8 +1,9 @@
 <table>
     <thead>
-        <tr><th colspan=2><h4>Statistics</h4></th></tr>
+        <tr><th colspan="2"><h4>Statistics</h4></th></tr>
     </thead>
     <tbody>
+        <tr><td>Level</td><td colspan="2">{{ level }}</td></tr>
         <tr><td>Created By</td><td colspan="2"><a href="/u/{{ author_id }}">{{ author_name }}</a></td></tr>
         <tr><td>Times Taken</td><td>{{ times_taken }}</td><td></td></tr>
         {% if average_mark %}

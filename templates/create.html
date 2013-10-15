@@ -27,7 +27,11 @@
 
 <label for="level">Level</label><br/>
 <select id="level" name="level" required>
+    {% if level %}
     <option value="{{ level }}">{{ level|title }}</option>
+    {% else %}
+    <option value="1">Choose a group</option>
+    {% endif %}
     {% for group in user_groups %}
     <option value="{{ level }}">{{ level|title }}</option>
     {% endfor %}
@@ -52,17 +56,9 @@ if ("{{ id }}" != "") {
     document.getElementById('group').value = "{{ group }}";
     document.getElementById('description').value = "{{ description }}";
 }
-var group_select = document.getElementById("group");
-var userLevels = JSON.parse('{{user_levels}}'.replace(/&quot;/g,'"'))
-for (i = 0; i < userLevels.length; i++){
-    console.log(userLevels[i].name + " (" + userLevels[i].level + ")" )
-    group_select.options[group_select.options.length] = new Option(
-        userLevels[i].name + " (Level: " + userLevels[i].level + ")",
-        userLevels[i].name
-    );
-}
 
 function createCategory(){
+    var group_select = document.getElementById("group");
     var group_name = prompt('What group would you like to add?');
     var re  =  new RegExp("^[a-z0-9_]{1,16}$");
     console.log( group_name.search(re) )
@@ -75,6 +71,8 @@ function createCategory(){
 }
 
 function changeGroup(){
+    var group_select = document.getElementById("group");
+    var userLevels = JSON.parse('{{user_levels}}'.replace(/&quot;/g,'"'))
     var level_select = document.getElementById("level");
     var level = 1
     for (i = 0; i < userLevels.length; i++){
