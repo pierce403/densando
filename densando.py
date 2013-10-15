@@ -1,5 +1,4 @@
 from __future__ import division # This forces divisions to return floats, which is the default behaviour in Python 3, but not Python 2
-## Imports from the Internet's greatest language
 import webapp2
 import datetime
 import os
@@ -9,6 +8,7 @@ import math
 import time
 import re
 import pickle
+import json
 # for encoding urls and generating md5 hashes
 import hashlib
 
@@ -145,6 +145,8 @@ class CreateAlterTest( webapp2.RequestHandler ):
                         self.redirect("/")
 
             template_values['user_groups'] = pickle.loads(entity.test_groups)
+            template_values['user_levels'] = json.dumps(get_grouped_marks( ndb.Key( "Entity", entity.id ) ))
+            print template_values['user_levels']
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
             self.response.out.write( template.render( path, template_values ))
 
@@ -173,6 +175,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
         test.title = self.request.get( 'title' )
         test.description = self.request.get( 'description' )
         test.group = self.request.get( 'group' )
+        test.level = self.request.get( 'level' )
         test.put()
 
         # Keep track of which test groups a user has used
@@ -376,6 +379,7 @@ class Test( ndb.Model ):
     num_marked = ndb.IntegerProperty( indexed=False )
     open = ndb.BooleanProperty( indexed=True )
     average_rating = ndb.FloatProperty( indexed=True )
+    level = ndb.IntegerProperty( indexed=True )
 
 class Entity( ndb.Model ):
     # About the user
@@ -473,6 +477,7 @@ def save_average_rating( test_id, avg ):
     test = Test.query( Test.id == test_id ).fetch(1)[0]
     test.average_rating = avg
     test.put()
+    return
     
 def get_to_be_marked( entity, test=None, num=None ):
     """Retrieves the responses from other entities that need to have marks assigned for tests created by this entity"""
@@ -528,7 +533,7 @@ def get_grouped_marks( ancestor_key ):
             group['level'] = 1
             group['level_progress'] = 0
     return grouped_marks
-    
+
         
 def get_marks( num=None, start_cursor=None, ancestor_key=None, mark_complete=None):
     """Retrieves the num most recent marks, starting at start_cursor, only for the ancestor if provided, and only completed or not-completed tests if mark_complete is provided"""

@@ -16,16 +16,23 @@
 <br/>
 
 <label for="group">Group</label><br/>
-<select id="group" name="group" required>
-    <option value="{{ group }}">{{ group|capfirst }}</option>
-    <option value="python">Python</option>
-    <option value="javascript">JavaScript</option>
+<select id="group" name="group" required  onChange="changeGroup();">
+    <option value="{{ group }}">{{ group|title }}</option>
     {% for group in user_groups %}
     <option value="{{ group }}">{{ group|title }}</option>
     {% endfor %}
 </select><a href="javascript:createCategory()">Add category...</a>
 
 <br/>
+
+<label for="level">Level</label><br/>
+<select id="level" name="level" required>
+    <option value="{{ level }}">{{ level|title }}</option>
+    {% for group in user_groups %}
+    <option value="{{ level }}">{{ level|title }}</option>
+    {% endfor %}
+</select>
+
 <br/>
 
 <label for="description">What is is that needs to be completed?</label><br/>
@@ -45,17 +52,45 @@ if ("{{ id }}" != "") {
     document.getElementById('group').value = "{{ group }}";
     document.getElementById('description').value = "{{ description }}";
 }
+var group_select = document.getElementById("group");
+var userLevels = JSON.parse('{{user_levels}}'.replace(/&quot;/g,'"'))
+for (i = 0; i < userLevels.length; i++){
+    console.log(userLevels[i].name + " (" + userLevels[i].level + ")" )
+    group_select.options[group_select.options.length] = new Option(
+        userLevels[i].name + " (Level: " + userLevels[i].level + ")",
+        userLevels[i].name
+    );
+}
+
 function createCategory(){
     var group_name = prompt('What group would you like to add?');
     var re  =  new RegExp("^[a-z0-9_]{1,16}$");
     console.log( group_name.search(re) )
     if (group_name.search(re)!=-1){
-        var select = document.getElementById("group");
-        select.options[select.options.length] = new Option(group_name, group_name.toLowerCase());
-        select.value = group_name.toLowerCase()
+        group_select.options[group_select.options.length] = new Option(group_name, group_name.toLowerCase());
+        group_select.value = group_name.toLowerCase()
     } else {
     alert("Groups names must only use lowercase letters, numbers and underscores.");
     }
+}
+
+function changeGroup(){
+    var level_select = document.getElementById("level");
+    var level = 1
+    for (i = 0; i < userLevels.length; i++){
+        if (userLevels[i].name == group_select.value) {
+             level = userLevels[i].level
+        }
+    }
+    console.log(level)
+    var saved_value = level_select.value
+    for (i = 0; i < level_select.length; i++) {
+      level_select.options[i] = null;
+    }
+    for ( i = 0; i < level; i++){
+        level_select.options[i] = new Option(i+1, i+1);
+    }
+    level_select.value = 1
 }
 </script>
 
