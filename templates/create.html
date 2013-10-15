@@ -4,6 +4,7 @@
 <form action="/c" method="post">
 {% if test_id %}
 <input type="hidden" name="id" value="{{ test_id }}">
+<input type="hidden" name="new_groups" value="">
 {% endif %}
 
 
@@ -17,7 +18,7 @@
     <option value="{{ group }}">{{ group|capfirst }}</option>
     <option value="python">Python</option>
     <option value="javascript">JavaScript</option>
-</select>
+</select><a href="javascript:createCategory()">Add category...</a>
 
 <br/>
 <br/>
@@ -37,6 +38,11 @@ document.getElementById('id').value = "{{ id }}";
 document.getElementById('title').value = "{{ title }}";
 document.getElementById('group').value = "{{ group }}";
 document.getElementById('description').value = "{{ description }}";
+
+function createCategory(){
+    var group_name = prompt('What group would you like to add?');
+    document.getElementById('new_groups').value.append("," + group_name)
+}
 </script>
 
 {% endblock content %}

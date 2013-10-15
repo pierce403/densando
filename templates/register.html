@@ -7,10 +7,15 @@
     <div class="notice error"><p>{{ error }}</p></div>
     {% endif %}
     <label for="display_name">You must select a username:</label>
-    <input type="text" id="display_name" name="display_name" required{% if user_name %} disabled{% endif %}/>
+    {% if not user_name %}
+    <input type="text" id="display_name" name="display_name" required />
     <br/>
+    {% endif %}
     <label for="bio">Please provide some information about yourself to the community:</label>
     <textarea name="bio" id="bio"></textarea>
+    {% if user_name %}
+    <input type="hidden" value="{{ user_name }}" id="user_name" name="user_name"/>
+    {% endif %}
     <button type="submit">Submit Button</button>
 </form>
 

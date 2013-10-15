@@ -7,6 +7,7 @@ import logging
 import urlparse
 import math
 import time
+import re
 # for encoding urls and generating md5 hashes
 import hashlib
 
@@ -75,12 +76,11 @@ class RegistrationHandler( webapp2.RequestHandler ):
                 created = datetime.datetime.now(),
             )
 
-        posted_name = self.request.get( 'display_name' )
-        import re
-        valid = False if re.match('[a-z0-9]+$', posted_name) is None else True
-        print "VALID:", valid
+        posted_name = self.request.get( 'display_name' ) if len(self.request.get( 'display_name' )) > 0 else self.request.get( 'user_name' )
 
-        if not valid or len(posted_name) == 0 or len(posted_name) > 16 or posted_name is not posted_name.lower():
+        # Show an error if the name isn't formatted properly.
+        print "POSTED NAME: '%s'" % posted_name
+        if re.match('^[a-z0-9]+$', posted_name) is None or len(posted_name) > 16:
             template_values['error'] = "Usernames must be 16 or fewer alphanumeric characters [a-z0-9]."
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
             self.response.out.write( template.render( path, template_values ))
@@ -89,8 +89,6 @@ class RegistrationHandler( webapp2.RequestHandler ):
         users_with_name = Entity.query( Entity.display_name == posted_name ).count()
         if users_with_name == 0 or entity.display_name == posted_name:
             # Update values
-            print "POSTED:",posted_name
-            print "Entity:",entity.display_name
             entity.display_name = posted_name if posted_name else entity.display_name
             entity.bio = self.request.get( 'bio' ) if len(self.request.get( 'bio' )) > 0 else "I am mysterious."
             # Save and visit
@@ -225,14 +223,14 @@ class TestView( webapp2.RequestHandler ):
         user = users.get_current_user()
 
         if not test_to_get:
-            self.logger.info("No test was provided for lookup")
+            self.logger.debug("No test was provided for lookup")
             self.redirect('/')
             return
         else:
             try:
                 test = Test.query( Test.id == test_to_get).fetch(1)[0]
             except IndexError:
-                self.logger.info("Invalid Test ID")
+                self.logger.debug("Invalid Test ID")
                 self.redirect('/')
             else:
                 if user:
@@ -244,7 +242,7 @@ class TestView( webapp2.RequestHandler ):
                         if (datetime.datetime.now() - mark.modified) < datetime.timedelta(hours=24) or mark.complete:
                             template_values['locked'] = True
                     except IndexError:
-                        self.logger.info( "No mark found" )
+                        self.logger.debug( "No mark found" )
                         template_values = add_test_to_template( template_values, test )
                     finally:    
                         if test.author_id == user.user_id():
@@ -394,7 +392,6 @@ class Mark( ndb.Model ):
 def add_mark_to_template( template_values, in_mark ):
     """Combines Mark object properties into template_values"""
     template_values = add_entity_to_template( template_values, in_mark.marker_entity )
-    print in_mark
     # the updated_test value is required here or else the Test that is returned is the Test taken, not the current test
     updated_test = Test.query( Test.id == in_mark.test.id ).fetch(1)[0]
     template_values = add_test_to_template( template_values, updated_test )
@@ -605,17 +602,14 @@ def get_navigation_urls( self, user ):
 
 def send_email( to, test, type ):
     """Sends an email"""
-    print "sending email to %s" % to
     site_name = "Densando"
     site_address = "densandodev.appspot.com"
     address_local = "do_not_reply"
     address_suffix = "densandodev.appspotmail.com"
     
     if type == "Test-Answer":
-        print "Test-Answer"
         subject = "Someone has submitted an answer to %s" % test.title
     elif type == "Answer-Response":
-        print "Answer-Response"
         subject = "Your answer to %s has been marked" % test.title
  
     email_message = mail.EmailMessage(
@@ -625,7 +619,6 @@ def send_email( to, test, type ):
         body = subject + "\n\n" + site_address + "/t/" + test.id,
     )
     email_message.send()
-    print "email sent"
     return True
 
 # Run Runaway!
