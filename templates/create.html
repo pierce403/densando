@@ -4,12 +4,14 @@
 <form action="/c" method="post">
 {% if test_id %}
 <input type="hidden" name="id" value="{{ test_id }}">
-<input type="hidden" name="new_groups" value="">
 {% endif %}
 
+{% if error %}
+<div class="notice error"><p>{{ error }}</p></div>
+{% endif %}
 
 <label for="title">Test Title</label><br/>
-<input id="title" type="text" name="title" value="{{ title }}" required></input>
+<input id="title" type="text" name="title" value="{{ title }}" required />
 
 <br/>
 
@@ -18,6 +20,9 @@
     <option value="{{ group }}">{{ group|capfirst }}</option>
     <option value="python">Python</option>
     <option value="javascript">JavaScript</option>
+    {% for group in user_groups %}
+    <option value="{{ group }}">{{ group|title }}</option>
+    {% endfor %}
 </select><a href="javascript:createCategory()">Add category...</a>
 
 <br/>
@@ -34,14 +39,23 @@
 
 <script type="text/javascript">
 // Setting values into the form fields for existing Tests
-document.getElementById('id').value = "{{ id }}";
-document.getElementById('title').value = "{{ title }}";
-document.getElementById('group').value = "{{ group }}";
-document.getElementById('description').value = "{{ description }}";
-
+if ("{{ id }}" != "") {
+    document.getElementById('id').value = "{{ id }}";
+    document.getElementById('title').value = "{{ title }}";
+    document.getElementById('group').value = "{{ group }}";
+    document.getElementById('description').value = "{{ description }}";
+}
 function createCategory(){
     var group_name = prompt('What group would you like to add?');
-    document.getElementById('new_groups').value.append("," + group_name)
+    var re  =  new RegExp("^[a-z0-9_]{1,16}$");
+    console.log( group_name.search(re) )
+    if (group_name.search(re)!=-1){
+        var select = document.getElementById("group");
+        select.options[select.options.length] = new Option(group_name, group_name.toLowerCase());
+        select.value = group_name.toLowerCase()
+    } else {
+    alert("Groups names must only use lowercase letters, numbers and underscores.");
+    }
 }
 </script>
 

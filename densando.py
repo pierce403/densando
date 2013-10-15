@@ -8,6 +8,7 @@ import urlparse
 import math
 import time
 import re
+import pickle
 # for encoding urls and generating md5 hashes
 import hashlib
 
@@ -74,6 +75,7 @@ class RegistrationHandler( webapp2.RequestHandler ):
                 user = user,
                 id = user.user_id(),
                 created = datetime.datetime.now(),
+                test_groups = pickle.dumps( [] ),
             )
 
         posted_name = self.request.get( 'display_name' ) if len(self.request.get( 'display_name' )) > 0 else self.request.get( 'user_name' )
@@ -128,7 +130,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
         user = users.get_current_user()
         try:
             entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
-            if not entity.display_name:              
+            if not entity.display_name: # It's only slightly possible to have a user with no display_name
                 self.redirect('/login')
         except:
             self.redirect('/login')
@@ -141,14 +143,16 @@ class CreateAlterTest( webapp2.RequestHandler ):
                         template_values = add_test_to_template( template_values, in_query[0] )
                     except IndexError: # The test does not exist
                         self.redirect("/")
-            
+
+            template_values['user_groups'] = pickle.loads(entity.test_groups)
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
             self.response.out.write( template.render( path, template_values ))
 
         
     def post(self):
         user = users.get_current_user()
-        test_query = Test.query( ancestor = ndb.Key('Entity', user.user_id()) )
+        entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+        test_query = Test.query( ancestor = ndb.Key('Entity', entity.id ) )
         test_query = test_query.filter( Test.id == self.request.get( 'id' ) ).fetch()
         logging.debug("TEST QUERY: %s", test_query)
         
@@ -156,21 +160,31 @@ class CreateAlterTest( webapp2.RequestHandler ):
             test = test_query[0]
             test.modified = datetime.datetime.now()
         else:
-            test = Test( parent = ndb.Key('Entity', user.user_id() ) )
+            test = Test( parent = ndb.Key('Entity', entity.id ) )
             test.created = datetime.datetime.now()
             test.times_taken = 0
             test.total_score = 0
             test.num_marked = 0
             test.average_rating = 0
             test.open = True
-            
-        test.author_id = user.user_id()
+            test.author_id = user.user_id()
+            test.id = str( test.put().id() )
+
         test.title = self.request.get( 'title' )
         test.description = self.request.get( 'description' )
-        test.group = self.request.get( 'group' )   
-        test.id = str( test.put().id() )
+        test.group = self.request.get( 'group' )
         test.put()
-        
+
+        # Keep track of which test groups a user has used
+        if entity.test_groups:
+            entity_groups = pickle.loads(entity.test_groups)
+        else:
+            entity_groups = []
+        if test.group not in entity_groups:
+            entity_groups.append(test.group)
+            entity.test_groups = pickle.dumps( entity_groups )
+            entity.put()
+
         logging.debug( "Test: %s", test )
         self.redirect('/t/%s' % test.id )
         return
@@ -353,7 +367,7 @@ class Test( ndb.Model ):
     id = ndb.StringProperty( indexed=True )
     title = ndb.StringProperty( indexed=True )
     description = ndb.TextProperty( indexed=False )
-    group = ndb.StringProperty( indexed=False    )
+    group = ndb.StringProperty( indexed=False )
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
     author_id = ndb.StringProperty( indexed=True )
@@ -362,7 +376,7 @@ class Test( ndb.Model ):
     num_marked = ndb.IntegerProperty( indexed=False )
     open = ndb.BooleanProperty( indexed=True )
     average_rating = ndb.FloatProperty( indexed=True )
-    
+
 class Entity( ndb.Model ):
     # About the user
     user = ndb.UserProperty( indexed=True )
@@ -371,6 +385,7 @@ class Entity( ndb.Model ):
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
     bio = ndb.TextProperty( indexed=False )
+    test_groups = ndb.PickleProperty( indexed=False )
 
 class Mark( ndb.Model ):
     marker_entity = ndb.StructuredProperty( Entity, indexed=True )
@@ -385,7 +400,6 @@ class Mark( ndb.Model ):
     id = ndb.StringProperty( indexed=True )
     rating = ndb.IntegerProperty( indexed=True )  
     rated = ndb.BooleanProperty( indexed=True )
-
 
 ## Helper Functions
 
