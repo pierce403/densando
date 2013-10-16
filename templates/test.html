@@ -1,12 +1,12 @@
 <a href="/t/{{test.id}}">
 	<div style="float:right;">
-    <p>{% if test.modified %}*{% endif %}{{ test.created|timesince:date }} old in {{ test.group }}</p>
-    {% if test.average_rating %}
-    <h5>  Rating: {{ test.average_rating|floatformat:2 }}</h5>
-    {% endif %}
-    {% if mark.mark %}
-    <h5>  Mark: {{ mark.mark }}</h5>
-    {% endif %}
+        <p>{% if test.modified %}*{% endif %}{{ test.created|timesince:date }} old in {{ test.group }}</p>
+        {% if test.average_rating %}
+        <h5>  Rating: {{ test.average_rating|floatformat:2 }}</h5>
+        {% endif %}
+        {% if mark.mark %}
+        <h5>  Mark: {{ mark.mark }}</h5>
+        {% endif %}
     </div>
-	<h5>{{ test.title }}</h5>
+	<h5>{{ test.level }} - {{ test.title }}</h5>
 </a>

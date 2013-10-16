@@ -6,6 +6,7 @@
         <tr><td>Level</td><td colspan="2">{{ level }}</td></tr>
         <tr><td>Created By</td><td colspan="2"><a href="/u/{{ author_id }}">{{ author_name }}</a></td></tr>
         <tr><td>Times Taken</td><td>{{ times_taken }}</td><td></td></tr>
+        <tr><td>Times Marked</td><td>{{ num_marked }}</td><td></td></tr>
         {% if average_mark %}
             <tr><td>Average Mark</td><td>{{ average_mark|floatformat:"2" }} / 5</td><td>{{ num_marked }} marked</td></tr>
         {% endif %}

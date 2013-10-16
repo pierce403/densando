@@ -6,17 +6,18 @@
     {% if error %}
     <div class="notice error"><p>{{ error }}</p></div>
     {% endif %}
-    <label for="display_name">You must select a username:</label>
     {% if not user_name %}
-    <input type="text" id="display_name" name="display_name" required />
+    <label for="display_name">Please select a username, using between 3 and 16 lowercase letters and numbers:</label>
+    <input type="text" id="display_name" name="display_name" placeholder="[a-z0-9]{3,16}" required />
     <br/>
     {% endif %}
-    <label for="bio">Please provide some information about yourself to the community:</label>
-    <textarea name="bio" id="bio"></textarea>
+    <label for="bio">Provide some information about yourself:</label>
+    <textarea name="bio" id="bio" placeholder="I am mysterious!"></textarea>
     {% if user_name %}
     <input type="hidden" value="{{ user_name }}" id="user_name" name="user_name"/>
     {% endif %}
-    <button type="submit">Submit Button</button>
+    <br/>
+    <button type="submit">Get Testing!</button>
 </form>
 
 <script type="text/javascript">

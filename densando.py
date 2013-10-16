@@ -7,8 +7,8 @@ import urlparse
 import math
 import time
 import re
-import pickle
 import json
+import itertools
 # for encoding urls and generating md5 hashes
 import hashlib
 
@@ -20,7 +20,7 @@ from google.appengine.datastore.datastore_query import Cursor
 
 ## Constants
 template_dir = 'templates/'
-
+default_groups = ['python', 'javascript', 'sql', 'json']
 ## Views to Render
 
 class MainPage(webapp2.RequestHandler):
@@ -49,7 +49,7 @@ class OpenCloseTest( webapp2.RequestHandler ):
         if not open and test_entity.open:
             test_entity.open = False
             test_entity.put()
-            
+
         self.redirect("/u")
        
 class RegistrationHandler( webapp2.RequestHandler ):
@@ -61,7 +61,7 @@ class RegistrationHandler( webapp2.RequestHandler ):
             self.response.out.write( template.render( path, template_values ))
         else:
             self.redirect('/')
-
+        return
 
     def post(self):
         template_values = get_template_values( self )
@@ -75,14 +75,13 @@ class RegistrationHandler( webapp2.RequestHandler ):
                 user = user,
                 id = user.user_id(),
                 created = datetime.datetime.now(),
-                test_groups = pickle.dumps( [] ),
+                test_groups = json.dumps( [] ),
             )
 
         posted_name = self.request.get( 'display_name' ) if len(self.request.get( 'display_name' )) > 0 else self.request.get( 'user_name' )
 
         # Show an error if the name isn't formatted properly.
-        print "POSTED NAME: '%s'" % posted_name
-        if re.match('^[a-z0-9]+$', posted_name) is None or len(posted_name) > 16:
+        if re.match('^[a-z0-9]{3,16}$', posted_name) is None:
             template_values['error'] = "Usernames must be 16 or fewer alphanumeric characters [a-z0-9]."
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
             self.response.out.write( template.render( path, template_values ))
@@ -101,7 +100,7 @@ class RegistrationHandler( webapp2.RequestHandler ):
             template_values['error'] = "That username is in use.  Please choose again."
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
             self.response.out.write( template.render( path, template_values ))
-
+        return
 
 class LoginHandler( webapp2.RequestHandler ):
     logger = logging.getLogger("LoginHandler")
@@ -119,11 +118,13 @@ class LoginHandler( webapp2.RequestHandler ):
         except IndexError:
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
             self.response.out.write( template.render( path, template_values ))
+        return
 
 
 
 
 class CreateAlterTest( webapp2.RequestHandler ):
+    logger = logging.getLogger("CreateAlterTest")
     
     def get(self, in_test_id=None):
         template_values = get_template_values( self )
@@ -144,20 +145,27 @@ class CreateAlterTest( webapp2.RequestHandler ):
                     except IndexError: # The test does not exist
                         self.redirect("/")
 
-            template_values['user_groups'] = pickle.loads(entity.test_groups)
-            template_values['user_levels'] = json.dumps(get_grouped_marks( ndb.Key( "Entity", entity.id ) ))
-            print template_values['user_levels']
+            template_values['user_groups'] = set(
+                itertools.chain( json.loads(entity.test_groups), [name for name in default_groups] )
+            )
+            template_values['user_levels'] = json.dumps( get_grouped_marks( ndb.Key( "Entity", entity.id ) ))
+
+            #level_groups = get_grouped_marks( ndb.Key( "Entity", entity.id ) )
+            #template_values['restricted_levels'] = {
+            #    group['name']:get_user_group_level( level_groups, group['name'])
+            #    for group in level_groups
+            #}
+
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
             self.response.out.write( template.render( path, template_values ))
+        return
 
-        
     def post(self):
         user = users.get_current_user()
         entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
         test_query = Test.query( ancestor = ndb.Key('Entity', entity.id ) )
         test_query = test_query.filter( Test.id == self.request.get( 'id' ) ).fetch()
-        logging.debug("TEST QUERY: %s", test_query)
-        
+
         if len(test_query) > 0:
             test = test_query[0]
             test.modified = datetime.datetime.now()
@@ -176,22 +184,30 @@ class CreateAlterTest( webapp2.RequestHandler ):
         test.description = self.request.get( 'description' )
         test.group = self.request.get( 'group' )
         test.level = int(self.request.get( 'level' ))
+
+        if re.match('^[a-z0-9_]{2,16}$', self.request.get( 'group' )) is None:
+            # If the group is invalid, try again
+            template_values = get_template_values( self )
+            template_values['error'] = """There was an error with the group entered. Please ensure it uses only
+                                       lowercase letters, numbers, and underscores."""
+            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
+            self.response.out.write( template.render( path, template_values ))
+
+        # Save the test if the group is valid
         test.put()
 
         # Keep track of which test groups a user has used
         if entity.test_groups:
-            entity_groups = pickle.loads(entity.test_groups)
+            entity_groups = json.loads(entity.test_groups)
         else:
             entity_groups = []
         if test.group not in entity_groups:
             entity_groups.append(test.group)
-            entity.test_groups = pickle.dumps( entity_groups )
+            entity.test_groups = json.dumps( entity_groups )
             entity.put()
 
-        logging.debug( "Test: %s", test )
         self.redirect('/t/%s' % test.id )
         return
- 
 
 class UserProfile( webapp2.RequestHandler ):
     
@@ -201,18 +217,13 @@ class UserProfile( webapp2.RequestHandler ):
         if user:
             
             if not profile_to_get or profile_to_get ==  user.user_id():
-                logging.info("Fetch this humanoid's profile! (%s)", user.user_id() )
                 entity_query = Entity.query( Entity.id == user.user_id() ).fetch() 
             else:
-                logging.info("Fetch profile for other humanoid! (%s)", profile_to_get )
-                logging.info("Getting Profile by id")
                 entity_query = Entity.query( Entity.id == profile_to_get ).fetch()
                 if len(entity_query) < 1:
-                    logging.info("Getting Profile by display_name")
                     entity_query = Entity.query( Entity.display_name == profile_to_get ).order(-Entity.created).fetch()
                     
             if len(entity_query) < 1:
-                logging.info("Tried searching for user using '%s', but they don't exist", profile_to_get)
                 self.redirect('/')
                 return
                 
@@ -225,9 +236,6 @@ class UserProfile( webapp2.RequestHandler ):
                 path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'profile.html' ) )
                 self.response.out.write( template.render( path, template_values ))
                 return
-        else:
-            self.redirect('/')
-        logging.warning("OUT OF BOUNDS (%s)", profile_to_get )
         self.redirect('/')
         return
         
@@ -251,7 +259,20 @@ class TestView( webapp2.RequestHandler ):
                 self.redirect('/')
             else:
                 if user:
-                    template_values = add_entity_to_template( template_values, Entity.query( Entity.id == user.user_id() ).fetch(1)[0] )
+                    template_values = add_entity_to_template(
+                        template_values,
+                        Entity.query( Entity.id == user.user_id() ).fetch(1)[0]
+                    )
+                    user_level = get_user_group_level(
+                        get_grouped_marks( ndb.Key( "Entity", user.user_id() ) ),
+                        test.group
+                    )
+                    if user_level == None:
+                        user_level = 1
+
+                    template_values['user_level'] = user_level
+                    if user_level < test.level:
+                        template_values['locked'] = True
                     try:
                         mark_query = Mark.query( ancestor = ndb.Key("Entity", user.user_id() ) )
                         mark = mark_query.filter( Mark.test.id == test.id ).fetch(1)[0]
@@ -319,7 +340,6 @@ class MarkView( webapp2.RequestHandler ):
 
     def post( self, in_test_id ):
         path = urlparse.urlsplit(self.request.referrer).path
-        user = users.get_current_user()
         author_id = self.request.get("author_id")
         test_id = self.request.get("test_id")
         mark_id = self.request.get("mark_id")
@@ -335,7 +355,7 @@ class MarkView( webapp2.RequestHandler ):
         mark_entity.marker_entity = author_entity
         mark_entity.test = test_entity
         mark_entity.comment = comment
-        mark_entity.mark = int(mark) * test_entity.level
+        mark_entity.mark = int(mark)
         test_entity.total_score += mark_entity.mark
         test_entity.num_marked += 1
         mark_entity.modified = datetime.datetime.now()
@@ -360,7 +380,7 @@ class MarkRating( webapp2.RequestHandler ):
             mark.rating = int( rating )
             mark.rated = True
             mark.put()
-            
+
         self.redirect("/t/%s" % mark_id)
         
             
@@ -389,7 +409,7 @@ class Entity( ndb.Model ):
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
     bio = ndb.TextProperty( indexed=False )
-    test_groups = ndb.PickleProperty( indexed=False )
+    test_groups = ndb.JsonProperty( indexed=False )
 
 class Mark( ndb.Model ):
     marker_entity = ndb.StructuredProperty( Entity, indexed=True )
@@ -504,7 +524,7 @@ def get_marked( entity, num=None ):
 
 def get_grouped_marks( ancestor_key ):
     """Returns a list of summary of the marks in each group
-       return { 'python':{'group_name':name, 'tests_taken':tests_taken, 'total_score': }, {...}, ... }
+       return {{'group_name':name, 'tests_taken':tests_taken, 'total_score':num }, {...}, ... }
     """
     grouped_marks = []
     groups = set()
@@ -517,13 +537,13 @@ def get_grouped_marks( ancestor_key ):
             grouped_marks.append({
                 'name': mark.test.group,
                 'tests_taken': 1,
-                'total_score': mark.mark,
+                'total_score': mark.mark * mark.test.level,
             })
         else:
             for group in grouped_marks:
                 if group['name'] == mark.test.group:
                     group['tests_taken'] += 1
-                    group['total_score'] += mark.mark
+                    group['total_score'] += mark.mark * mark.test.level
 
     for group in grouped_marks:
         if group['total_score'] is not None and group['total_score'] > 0:
@@ -535,6 +555,10 @@ def get_grouped_marks( ancestor_key ):
             group['level_progress'] = 0
     return grouped_marks
 
+def get_user_group_level( level_groups, group_name ):
+    for group in level_groups:
+        if group['name'] == group_name:
+            return group['level']
         
 def get_marks( num=None, start_cursor=None, ancestor_key=None, mark_complete=None):
     """Retrieves the num most recent marks, starting at start_cursor, only for the ancestor if provided, and only completed or not-completed tests if mark_complete is provided"""

@@ -21,7 +21,7 @@
     {% for group in user_groups %}
     <option value="{{ group }}">{{ group|title }}</option>
     {% endfor %}
-</select><a href="javascript:createCategory()">Add category...</a>
+</select><a href="javascript:createGroup()">Add new group...</a>
 
 <br/>
 
@@ -30,16 +30,12 @@
     {% if level %}
     <option value="{{ level }}">{{ level|title }}</option>
     {% else %}
-    <option value="1">Choose a group</option>
+    <option value="1"></option>
     {% endif %}
-    {% for group in user_groups %}
-    <option value="{{ level }}">{{ level|title }}</option>
-    {% endfor %}
 </select>
 
 <br/>
-
-<label for="description">What is is that needs to be completed?</label><br/>
+<label for="description">What is it that needs to be completed?</label><br/>
 <textarea id="description" name="description" required>{{ description }}</textarea>
 
 <br/>
@@ -57,17 +53,17 @@ if ("{{ id }}" != "") {
     document.getElementById('description').value = "{{ description }}";
 }
 
-function createCategory(){
+function createGroup(){
     var group_select = document.getElementById("group");
     var group_name = prompt('What group would you like to add?');
-    var re  =  new RegExp("^[a-z0-9_]{1,16}$");
-    console.log( group_name.search(re) )
+    var re  =  new RegExp("^[a-z0-9_]{2,16}$");
     if (group_name.search(re)!=-1){
         group_select.options[group_select.options.length] = new Option(group_name, group_name.toLowerCase());
         group_select.value = group_name.toLowerCase()
     } else {
     alert("Groups names must only use lowercase letters, numbers and underscores.");
     }
+    changeGroup()
 }
 
 function changeGroup(){
@@ -80,7 +76,6 @@ function changeGroup(){
              level = userLevels[i].level
         }
     }
-    console.log(level)
     var saved_value = level_select.value
     for (i = 0; i < level_select.length; i++) {
       level_select.options[i] = null;
