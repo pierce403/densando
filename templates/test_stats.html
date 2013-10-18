@@ -14,6 +14,6 @@
             <tr><td>Average Rating</td><td>{{ average_rating|floatformat:"2" }} / 5</td><td>{{ num_ratings }} rating{{ num_ratings|pluralize }}</td></tr>
         {% endif %}
         <tr><td>Created</td><td colspan="2">{{ test_created }}</td></tr>
-        <tr><td>Modified</td><td colspan="2">{{ test_modified }}</td></tr>
+        {% if test_modified %}<tr><td>Modified</td><td colspan="2">{{ test_modified }}</td></tr>{% endif %}
     </tbody>
 </table>

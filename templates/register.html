@@ -2,23 +2,73 @@
 
 {% block content %}
 
-<form action="/register" method="post">
     {% if error %}
     <div class="notice error"><p>{{ error }}</p></div>
     {% endif %}
+
+    {% if user_name %}
+    <div class="col_6">
+    <table>
+        <thead>
+            <tr>
+                <th>Group Name</th>
+                <th>Total Score</th>
+                <th>Tests Completed</th>
+                <th>Level</th>
+                <th>Progress</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in mark_groups %}
+            <tr>
+                <td>{{ group.group }}</td>
+                <td>{% if group.total_score %}{{ group.total_score }}{% else %}0{% endif %}</td>
+                <td>{% if group.tests_taken %}{{ group.tests_taken }}{% else %} 0{% endif %}</td>
+                <td>{{ group.level|floatformat:"0" }}</td>
+                <td><meter
+                    id='level_progress'
+                    max='100'
+                    min="0"
+                    value={{ group.level_progress }}>{{ group.level_progress|floatformat:"-2" }}%</meter>
+                </td>
+            </tr>
+            {% endfor %}
+        <tr>
+            <form action="/add_test_group" method="post">
+                <td colspan="2"><input id="group_name" name="group_name" placeholder="^[a-z0-9_]{2,16}$"></input></td>
+                <td colspan="3"><button type="submit">Add Group</button></td>
+            </form>
+        </tr>
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+
+    <form action="/register" method="post">
     {% if not user_name %}
+    <div class="col_12">
     <label for="display_name">Please select a username, using between 3 and 16 lowercase letters and numbers:</label>
     <input type="text" id="display_name" name="display_name" placeholder="[a-z0-9]{3,16}" required />
     <br/>
+    {% else %}
+    <div class="col_6">
     {% endif %}
+
     <label for="bio">Provide some information about yourself:</label>
     <textarea name="bio" id="bio" placeholder="I am mysterious!"></textarea>
+
     {% if user_name %}
     <input type="hidden" value="{{ user_name }}" id="user_name" name="user_name"/>
-    {% endif %}
-    <br/>
+    <button type="submit">Update Profile</button>
+    {% else %}
     <button type="submit">Get Testing!</button>
-</form>
+    {% endif %}
+    </div>
+    </form>
+
+    {% if user_name %}
+
+    {% endif %}
 
 <script type="text/javascript">
 // Setting values into the form fields for existing Tests

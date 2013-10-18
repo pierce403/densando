@@ -57,6 +57,7 @@ class RegistrationHandler( webapp2.RequestHandler ):
         template_values = get_template_values( self )
         user = users.get_current_user()
         if user:
+            template_values['mark_groups'] = get_grouped_marks( user.user_id() )
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'register.html' ) )
             self.response.out.write( template.render( path, template_values ))
         else:
@@ -77,8 +78,10 @@ class RegistrationHandler( webapp2.RequestHandler ):
                 created = datetime.datetime.now(),
                 test_groups = [],
             )
-
-        posted_name = self.request.get( 'display_name' ) if len(self.request.get( 'display_name' )) > 0 else self.request.get( 'user_name' )
+        if not entity.display_name:
+            posted_name = self.request.get( 'display_name' )
+        else:
+            posted_name = entity.display_name
 
         # Show an error if the name isn't formatted properly.
         if re.match('^[a-z0-9]{3,16}$', posted_name) is None:
@@ -227,11 +230,6 @@ class CreateAlterTest( webapp2.RequestHandler ):
             max_test_level = max_test_query[0].level / 2
         except IndexError:
             max_test_level = 0
-        print "USER LEVEL: ", user_level
-        print "MAX TEST L: ", max_test_level
-        print "TEST LEVEL: ", test.level
-
-        print (user_level) > max_test_level
 
         if user_level < max_test_level or user_level < test.level:
             # User level is not high enough.
@@ -242,9 +240,7 @@ class CreateAlterTest( webapp2.RequestHandler ):
             elif user_level < test.level:
                 template_values['error'] = """You must be at least level %d in %s to create a level %d test .""" \
                                        % ( test.level, test.group, test.level)
-            template_values['user_groups'] = set(
-            itertools.chain( entity.test_groups, default_groups )
-            )
+            template_values['user_groups'] = set( itertools.chain( entity.test_groups, default_groups ) )
             template_values['user_levels'] = json.dumps( get_grouped_marks( entity_id=entity.id ) )
             template_values = add_test_to_template(template_values, test)
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
@@ -293,7 +289,26 @@ class UserProfile( webapp2.RequestHandler ):
                 return
         self.redirect('/')
         return
-        
+
+class AddTestGroup( webapp2.RequestHandler ):
+    logger = logging.getLogger("AddTestGroup")
+
+    def post(self):
+        group_name = self.request.get('group_name')
+        user = users.get_current_user()
+        entity = Entity.query( Entity.id == user.user_id() ).fetch()[0]
+        try:
+            assert re.match('^[a-z0-9_]{2,16}$', group_name ) is not None
+        except:
+            self.redirect('/preferences')
+        else:
+            if group_name not in entity.test_groups:
+                entity.test_groups.append(group_name)
+                entity.put()
+            time.sleep(0.1) # Need some time to ensure consistency.
+        self.redirect('/preferences')
+
+
 class TestView( webapp2.RequestHandler ):
     logger = logging.getLogger("TestView")
     
@@ -769,6 +784,7 @@ app = webapp2.WSGIApplication( [
     ( '/preferences', RegistrationHandler ),
     ( '/c/([^/]+)', CreateAlterTest ),
     ( '/c', CreateAlterTest ),
+    ( '/add_test_group', AddTestGroup ),
     ( '/u/([^/]+)', UserProfile ),
     ( '/u', UserProfile ),
     ( '/t/([^/]+)/([tf])', OpenCloseTest ),

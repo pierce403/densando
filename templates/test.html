@@ -4,7 +4,7 @@
         {% if test.average_rating %}
         <h5>  Rating: {{ test.average_rating|floatformat:2 }}</h5>
         {% endif %}
-        {% if mark.mark %}
+        {% if mark.mark > -1 %}
         <h5>  Mark: {{ mark.mark }}</h5>
         {% endif %}
     </div>

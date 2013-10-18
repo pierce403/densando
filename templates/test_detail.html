@@ -22,18 +22,16 @@
                     <p>You are unable to take this test because you must be signed in to complete tests.</p>
                 {% else %}
                     {% if is_test_marker %}
-                        <p>You are unable to take this test because you are the creator of this test</p>
-                        {% if to_be_marked|length > 0 %}
-                            <p>You have {{ to_be_marked|length }} answer{{ to_be_marked|length|pluralize }} waiting to be marked for this test.</p>
-                        {% endif %}
+                        <p>You are the creator of this test!</p>
+                        <p>There are {{ to_be_marked|length }} answer{{ to_be_marked|length|pluralize }} waiting to be marked for this test.</p>
                     {% else %}
                         {% if mark > -1 %}
-                            <p>You are unable to take this test because you have already taken this test</p>
+                            <p>You have already taken this test</p>
                         {% else %}
                         {% if user_level < level %}
-                            <p>You are unable to take this test because your level in this group is not high enough.</p>
+                            <p>Your level in this group is not high enough.</p>
                         {% else %}
-                            <p>You are unable to take this test because you recently created or modified this answer, and will have to wait a while before altering it again.</p>
+                            <p>You recently created or modified this answer, and will have to wait a while before altering it again.</p>
                         {% endif %}
                         {% endif %}
                         {% if user_level >= level %}
