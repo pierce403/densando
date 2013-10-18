@@ -55,7 +55,7 @@ if ("{{ id }}" != "") {
 
 function createGroup(){
     var group_select = document.getElementById("group");
-    var group_name = prompt('What group would you like to add?');
+    var group_name = prompt('What group would you like to add?').toLowerCase();
     var re  =  new RegExp("^[a-z0-9_]{2,16}$");
     if (group_name.search(re)!=-1){
         group_select.options[group_select.options.length] = new Option(group_name, group_name.toLowerCase());

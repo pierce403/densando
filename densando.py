@@ -222,27 +222,34 @@ class CreateAlterTest( webapp2.RequestHandler ):
         user_level = get_user_group_level( get_grouped_marks( entity.id ), test.group )
         max_test_query = Test.query( Test.group == test.group ).order(-Test.level).fetch()
         print max_test_query
-        if len(max_test_query) > 0:
-            # If max_test_query is empty, this is a new group, so don't do any checks on it.
-            max_test_level = max_test_query[0].level + 1
-            print "USER LEVEL: ", user_level + 1
-            print "MAX TEST L: ", max_test_level / 2
 
-            print (user_level + 1) > max_test_level/2
+        try:
+            max_test_level = max_test_query[0].level / 2
+        except IndexError:
+            max_test_level = 0
+        print "USER LEVEL: ", user_level
+        print "MAX TEST L: ", max_test_level
+        print "TEST LEVEL: ", test.level
 
-            if not (user_level + 1) > max_test_level/2 and user_level >= test.level:
-                # User level is not high enough.
-                template_values = get_template_values( self )
+        print (user_level) > max_test_level
+
+        if user_level < max_test_level or user_level < test.level:
+            # User level is not high enough.
+            template_values = get_template_values( self )
+            if user_level < max_test_level:
                 template_values['error'] = """You must be at least level %d in %s to create a test.""" \
-                                           % ( math.floor(max_test_level/2) + 1, test.group)
-                template_values['user_groups'] = set(
-                itertools.chain( entity.test_groups, default_groups )
-                )
-                template_values['user_levels'] = json.dumps( get_grouped_marks( ndb.Key( "Entity", entity.id ) ))
-                template_values = add_test_to_template(template_values, test)
-                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
-                self.response.out.write( template.render( path, template_values ))
-                return
+                                       % ( math.floor(max_test_level), test.group)
+            elif user_level < test.level:
+                template_values['error'] = """You must be at least level %d in %s to create a level %d test .""" \
+                                       % ( test.level, test.group, test.level)
+            template_values['user_groups'] = set(
+            itertools.chain( entity.test_groups, default_groups )
+            )
+            template_values['user_levels'] = json.dumps( get_grouped_marks( entity_id=entity.id ) )
+            template_values = add_test_to_template(template_values, test)
+            path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
+            self.response.out.write( template.render( path, template_values ))
+            return
 
 
         # Create an id and save the test if the group is valid
