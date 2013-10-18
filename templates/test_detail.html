@@ -18,23 +18,22 @@
         <input type="hidden" name="mark_id" value="{{ mark_id }}" />
         {% if locked %}
             <div class="notice warning">
-                <p>You are unable to take this test because 
                 {% if visitor %}
-                    you must be signed in to complete tests.</p>
+                    <p>You are unable to take this test because you must be signed in to complete tests.</p>
                 {% else %}
                     {% if is_test_marker %}
-                        you are the creator of this test</p>
+                        <p>You are unable to take this test because you are the creator of this test</p>
                         {% if to_be_marked|length > 0 %}
                             <p>You have {{ to_be_marked|length }} answer{{ to_be_marked|length|pluralize }} waiting to be marked for this test.</p>
                         {% endif %}
                     {% else %}
                         {% if mark > -1 %}
-                            you have already taken this test</p>
+                            <p>You are unable to take this test because you have already taken this test</p>
                         {% else %}
                         {% if user_level < level %}
-                            your level in this group is not high enough.</p>
+                            <p>You are unable to take this test because your level in this group is not high enough.</p>
                         {% else %}
-                            you recently created or modified this answer, and will have to wait a while before altering it again.</p>
+                            <p>You are unable to take this test because you recently created or modified this answer, and will have to wait a while before altering it again.</p>
                         {% endif %}
                         {% endif %}
                         {% if user_level >= level %}

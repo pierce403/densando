@@ -49,6 +49,12 @@ indexes:
 
 - kind: Test
   properties:
+  - name: group
+  - name: level
+    direction: desc
+
+- kind: Test
+  properties:
   - name: open
   - name: created
     direction: desc

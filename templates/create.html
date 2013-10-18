@@ -21,7 +21,7 @@
     {% for group in user_groups %}
     <option value="{{ group }}">{{ group|title }}</option>
     {% endfor %}
-</select><a href="javascript:createGroup()">Add new group...</a>
+</select><a onClick="createGroup()">Add new group...</a>
 
 <br/>
 
@@ -68,15 +68,15 @@ function createGroup(){
 
 function changeGroup(){
     var group_select = document.getElementById("group");
-    var userLevels = JSON.parse('{{user_levels}}'.replace(/&quot;/g,'"'))
+    var userLevels = JSON.parse('{{user_levels}}'.replace(/&quot;/g,'"'));
     var level_select = document.getElementById("level");
-    var level = 1
+    var level = 1;
     for (i = 0; i < userLevels.length; i++){
-        if (userLevels[i].name == group_select.value) {
+        if (userLevels[i].group == group_select.value) {
              level = userLevels[i].level
         }
     }
-    var saved_value = level_select.value
+    var saved_value = level_select.value;
     for (i = 0; i < level_select.length; i++) {
       level_select.options[i] = null;
     }

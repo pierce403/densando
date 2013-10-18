@@ -21,8 +21,8 @@ from google.appengine.datastore.datastore_query import Cursor
 ## Constants
 template_dir = 'templates/'
 default_groups = ['python', 'javascript', 'sql', 'json']
-## Views to Render
 
+## Views to Render
 class MainPage(webapp2.RequestHandler):
     logger = logging.getLogger("MainPage")
     
@@ -75,7 +75,7 @@ class RegistrationHandler( webapp2.RequestHandler ):
                 user = user,
                 id = user.user_id(),
                 created = datetime.datetime.now(),
-                test_groups = json.dumps( [] ),
+                test_groups = [],
             )
 
         posted_name = self.request.get( 'display_name' ) if len(self.request.get( 'display_name' )) > 0 else self.request.get( 'user_name' )
@@ -145,16 +145,33 @@ class CreateAlterTest( webapp2.RequestHandler ):
                     except IndexError: # The test does not exist
                         self.redirect("/")
 
-            template_values['user_groups'] = set(
-                itertools.chain( json.loads(entity.test_groups), [name for name in default_groups] )
+            potential_groups = set(
+                itertools.chain( entity.test_groups, default_groups )
             )
-            template_values['user_levels'] = json.dumps( get_grouped_marks( ndb.Key( "Entity", entity.id ) ))
+            print potential_groups
+            grouped_marks = get_grouped_marks( entity.id )
 
-            #level_groups = get_grouped_marks( ndb.Key( "Entity", entity.id ) )
-            #template_values['restricted_levels'] = {
-            #    group['name']:get_user_group_level( level_groups, group['name'])
-            #    for group in level_groups
-            #}
+            # Add groups with levels for level dropdown
+            template_values['user_levels'] = json.dumps( grouped_marks )
+
+            # Add list of groups for group dropdown
+            template_values['user_groups'] = []
+            for group in grouped_marks:
+                group_test_query = Test.query( Test.group == group['group'] ).order(-Test.level).fetch()
+                try:
+                    threshold = group_test_query[0]
+                except:
+                    threshold = 0
+                print threshold
+                for mark in grouped_marks:
+                    potential_groups = potential_groups - set(group['group'])
+                    if mark['group'] == group and mark["level"] >= threshold:
+                        template_values['user_groups'].append( group )
+            for group in potential_groups:
+                template_values['user_groups'].append( group )
+
+            if template_values["user_groups"] == []:
+                template_values['error'] = "You may only create a test in a new category."
 
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
             self.response.out.write( template.render( path, template_values ))
@@ -178,32 +195,63 @@ class CreateAlterTest( webapp2.RequestHandler ):
             test.average_rating = 0
             test.open = True
             test.author_id = user.user_id()
-            test.id = str( test.put().id() )
 
         test.title = self.request.get( 'title' )
         test.description = self.request.get( 'description' )
         test.group = self.request.get( 'group' )
         test.level = int(self.request.get( 'level' ))
 
-        if re.match('^[a-z0-9_]{2,16}$', self.request.get( 'group' )) is None:
+        # Define rules for what is and isn't a valid group
+        try:
+            assert re.match('^[a-z0-9_]{2,16}$', self.request.get( 'group' )) is not None
+        except:
             # If the group is invalid, try again
             template_values = get_template_values( self )
             template_values['error'] = """There was an error with the group entered. Please ensure it uses only
                                        lowercase letters, numbers, and underscores."""
+            template_values['user_groups'] = set(
+                itertools.chain( entity.test_groups, default_groups )
+            )
+            template_values['user_levels'] = json.dumps( get_grouped_marks( ndb.Key( "Entity", entity.id ) ))
+            template_values = add_test_to_template(template_values, test)
             path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
             self.response.out.write( template.render( path, template_values ))
+            return
 
-        # Save the test if the group is valid
+        # Define rules for what is and isn't a valid level for the user to be posting in.
+        user_level = get_user_group_level( get_grouped_marks( entity.id ), test.group )
+        max_test_query = Test.query( Test.group == test.group ).order(-Test.level).fetch()
+        print max_test_query
+        if len(max_test_query) > 0:
+            # If max_test_query is empty, this is a new group, so don't do any checks on it.
+            max_test_level = max_test_query[0].level + 1
+            print "USER LEVEL: ", user_level + 1
+            print "MAX TEST L: ", max_test_level / 2
+
+            print (user_level + 1) > max_test_level/2
+
+            if not (user_level + 1) > max_test_level/2 and user_level >= test.level:
+                # User level is not high enough.
+                template_values = get_template_values( self )
+                template_values['error'] = """You must be at least level %d in %s to create a test.""" \
+                                           % ( math.floor(max_test_level/2) + 1, test.group)
+                template_values['user_groups'] = set(
+                itertools.chain( entity.test_groups, default_groups )
+                )
+                template_values['user_levels'] = json.dumps( get_grouped_marks( ndb.Key( "Entity", entity.id ) ))
+                template_values = add_test_to_template(template_values, test)
+                path = os.path.join( os.path.dirname(__file__), os.path.join( template_dir, 'create.html' ) )
+                self.response.out.write( template.render( path, template_values ))
+                return
+
+
+        # Create an id and save the test if the group is valid
+        test.id = str( test.put().id() )
         test.put()
 
         # Keep track of which test groups a user has used
-        if entity.test_groups:
-            entity_groups = json.loads(entity.test_groups)
-        else:
-            entity_groups = []
-        if test.group not in entity_groups:
-            entity_groups.append(test.group)
-            entity.test_groups = json.dumps( entity_groups )
+        if test.group not in entity.test_groups:
+            entity.test_groups.append(test.group)
             entity.put()
 
         self.redirect('/t/%s' % test.id )
@@ -239,7 +287,6 @@ class UserProfile( webapp2.RequestHandler ):
         self.redirect('/')
         return
         
-        
 class TestView( webapp2.RequestHandler ):
     logger = logging.getLogger("TestView")
     
@@ -264,7 +311,7 @@ class TestView( webapp2.RequestHandler ):
                         Entity.query( Entity.id == user.user_id() ).fetch(1)[0]
                     )
                     user_level = get_user_group_level(
-                        get_grouped_marks( ndb.Key( "Entity", user.user_id() ) ),
+                        get_grouped_marks( user.user_id() ),
                         test.group
                     )
                     if user_level == None:
@@ -335,7 +382,6 @@ class TestView( webapp2.RequestHandler ):
         self.redirect( '/t/%s' % test_id )
         return
         
-        
 class MarkView( webapp2.RequestHandler ):
 
     def post( self, in_test_id ):
@@ -382,15 +428,13 @@ class MarkRating( webapp2.RequestHandler ):
             mark.put()
 
         self.redirect("/t/%s" % mark_id)
-        
             
 ## Look at all these glamorous MODELS
-        
 class Test( ndb.Model ):
     id = ndb.StringProperty( indexed=True )
     title = ndb.StringProperty( indexed=True )
     description = ndb.TextProperty( indexed=False )
-    group = ndb.StringProperty( indexed=False )
+    group = ndb.StringProperty( indexed=True )
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
     author_id = ndb.StringProperty( indexed=True )
@@ -409,7 +453,7 @@ class Entity( ndb.Model ):
     created = ndb.DateTimeProperty( )
     modified = ndb.DateTimeProperty( )
     bio = ndb.TextProperty( indexed=False )
-    test_groups = ndb.JsonProperty( indexed=False )
+    test_groups = ndb.StringProperty( indexed=True, repeated=True )
 
 class Mark( ndb.Model ):
     marker_entity = ndb.StructuredProperty( Entity, indexed=True )
@@ -426,7 +470,6 @@ class Mark( ndb.Model ):
     rated = ndb.BooleanProperty( indexed=True )
 
 ## Helper Functions
-
 def add_mark_to_template( template_values, in_mark ):
     """Combines Mark object properties into template_values"""
     template_values = add_entity_to_template( template_values, in_mark.marker_entity )
@@ -451,7 +494,7 @@ def add_entity_to_template( template_values, in_entity, request=None, open=None 
     template_values['created'] = in_entity.created
     template_values['modified'] = in_entity.modified
     template_values['bio'] = in_entity.bio
-    template_values['grouped_marks'] = get_grouped_marks( ancestor_key=ndb.Key("Entity", in_entity.id) )
+    template_values['grouped_marks'] = get_grouped_marks_list( entity_id = in_entity.id )
     template_values['gravatar'] = "http://www.gravatar.com/avatar/" + hashlib.md5(in_entity.user.email().lower()).hexdigest() + "?s=60"
     ## Lists of Tests
     if request: 
@@ -522,13 +565,14 @@ def get_marked( entity, num=None ):
     else:
         return mark_query.fetch( num )
 
-def get_grouped_marks( ancestor_key ):
+def get_grouped_marks_list( entity_id ):
     """Returns a list of summary of the marks in each group
+        This only provides values for groups that the user has been given
        return {{'group_name':name, 'tests_taken':tests_taken, 'total_score':num }, {...}, ... }
     """
     grouped_marks = []
     groups = set()
-    mark_list = Mark.query( ancestor = ancestor_key ).filter( Mark.complete == True ).order( -Mark.created ).fetch()
+    mark_list = Mark.query( ancestor = ndb.Key( "Entity", entity_id) ).filter( Mark.complete == True ).order( -Mark.created ).fetch()
     for mark in mark_list:
         groups_length = len(groups)
         groups.update( mark.test.group )
@@ -555,10 +599,55 @@ def get_grouped_marks( ancestor_key ):
             group['level_progress'] = 0
     return grouped_marks
 
+def get_grouped_marks( entity_id ):
+    """Returns a list of summary of the marks in each group
+        This list will return all available lgroups, even if the level is 0.
+    """
+    grouped_marks = []
+    groups = set()
+    mark_list = Mark.query( ancestor = ndb.Key( "Entity", entity_id )).filter( Mark.complete == True ).order( -Mark.created ).fetch()
+    entity = Entity.query( Entity.id == entity_id).fetch()[0]
+
+    group_list = []
+    for mark in mark_list:
+        groups_length = len(groups)
+        groups.update( mark.test.group )
+        if groups_length < len(groups):
+            # If the set of groups got longer, add a new dict to the list
+            grouped_marks.append({
+                'group' : mark.test.group,
+                'level' : mark.test.level,
+                'level_progress' : 0,
+                'tests_taken' : 0,
+                'total_score' : 0,
+            })
+        else:
+            for group in grouped_marks:
+                if group['group'] == mark.test.group:
+                    group['tests_taken'] += 1
+                    group['total_score'] += mark.mark * mark.test.level
+                    group_list.append( mark.test.group )
+
+    for group in grouped_marks:
+        if group['total_score'] is not None and group['total_score'] > 0:
+            group['level'] = math.floor( math.log( float(group['total_score']),2 ) )
+            group['level_progress'] = (math.log( group['total_score'],2 ) - group['level']) * 100
+        else:
+            group['total_score'] = 0
+            group['level'] = 1
+            group['level_progress'] = 0
+
+    unused_defaults = set( itertools.chain( entity.test_groups, default_groups )) - set( [ group['group'] for group in grouped_marks ] )
+    for group in unused_defaults:
+        grouped_marks.append( {'group':group,'level':1,'level_progress':0} )
+    return grouped_marks
+
+
 def get_user_group_level( level_groups, group_name ):
     for group in level_groups:
-        if group['name'] == group_name:
+        if group['group'] == group_name:
             return group['level']
+    return 1
         
 def get_marks( num=None, start_cursor=None, ancestor_key=None, mark_complete=None):
     """Retrieves the num most recent marks, starting at start_cursor, only for the ancestor if provided, and only completed or not-completed tests if mark_complete is provided"""
