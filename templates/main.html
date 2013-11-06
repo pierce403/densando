@@ -2,14 +2,38 @@
 
 {% block content %}
 <section>
-<p>Hi, Welcome to Densando.  Your work is your reward.</p>
+    <form id="search-form" method="post" action="/">
+        <label for="search-text">Query:</label>
+        <input type="text" id="search-text" name="search-text" placeholder="Query" value="{{ query_values.query }}"/>
+        <label for="search-order">Order:</label>
+        <select name="search-order" id="search-order">
+            <option value="rating" {% if query_values.order == "rating" %}selected{% endif %}>Rating</option>
+            <option value="times_taken" {% if query_values.order == "times_taken" %}selected{% endif %}>Popularity</option>
+            <option value="date_inc" {% if query_values.order == "date_inc" %}selected{% endif %}>Date (Newest-to-Oldest)</option>
+            <option value="date_dec" {% if query_values.order == "date_dec" %}selected{% endif %}>Date (Oldest-to-Newest)</option>
+            <option value="level_dec" {% if query_values.order == "level_dec" %}selected{% endif %}>Level (High-to-Low)</option>
+            <option value="level_inc" {% if query_values.order == "level_inc" %}selected{% endif %}>Level (Low-to-High)</option>
+        </select>
+        <label for="search-completed">Hide Completed?:</label>
+        <input type="checkbox" name="search-completed" id="search-completed" {%  if query_values.completed %}checked{%  endif %}/>
+        <button type="submit" name="search-button" id="search-button">Search</button>
+    </form>
 </section>
 <section>
+    {% if query_results %}
+    <h2>Search Results</h2>
+    {% for test in query_results %}
+	<div class="front-page-test test-preview">
+		{% include "test.html" %}
+	</div>
+    {% endfor %}
+    {% else %}
     {% for test in recent_tests.tests %}
 	<div class="front-page-test test-preview"> 
 		{% include "test.html" %}
 	</div>
     {% endfor %}
+    {% endif %}
     {% if recent_tests.next and recent_tests.more %}
     <ul class="button-bar" style="width:100%;">
         <li style="width:100%;"><a href="?next={{ recent_tests.next }}" style="width:100%;text-align:center;line-height:36px;">See More...</a></li>

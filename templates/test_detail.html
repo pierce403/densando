@@ -46,7 +46,7 @@
         {% endif %}
         {% if current_user != author_id and not locked %}
         <textarea id="response" name="response" >{% if response %}{{ response }}{% endif %}</textarea><br/>
-        <button type="submit"}>Submit Button</button>
+        <button type="submit">Submit Button</button>
         {% endif %}
     </form>
     {% if mark > -1 %}
