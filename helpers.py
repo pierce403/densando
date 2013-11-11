@@ -292,7 +292,7 @@ def get_navigation_urls( self, user ):
 def send_email( to, test, type ):
     """Sends an email"""
     site_name = "Densando"
-    site_address = "densando-hr.appspot.com"
+    site_address = "www.densando.net"
     address_local = "do_not_reply"
     address_suffix = "densando-hr.appspotmail.com"
 
