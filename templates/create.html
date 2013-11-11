@@ -10,18 +10,18 @@
 <div class="notice error"><p>{{ error }}</p></div>
 {% endif %}
 
-<label for="title">Test Title</label><br/>
+<label for="title">Challenge Title</label><br/>
 <input id="title" type="text" name="title" value="{{ title }}" required />
 
 <br/>
 
-<label for="group">Group</label><br/>
+<label for="group">Category</label><br/>
 <select id="group" name="group" required  onChange="changeGroup();">
     <option value="{{ group }}">{{ group|title }}</option>
     {% for group in user_groups %}
     <option value="{{ group }}">{{ group|title }}</option>
     {% endfor %}
-</select><a onClick="createGroup()">Add new group...</a>
+</select><a onClick="createGroup()"> Add New Category</a>
 
 <br/>
 
@@ -61,7 +61,7 @@ function createGroup(){
         group_select.options[group_select.options.length] = new Option(group_name, group_name.toLowerCase());
         group_select.value = group_name.toLowerCase()
     } else {
-    alert("Groups names must only use lowercase letters, numbers and underscores.");
+    alert("Category names must only use lowercase letters, numbers and underscores.");
     }
     changeGroup()
 }

@@ -8,7 +8,7 @@
 {% if bio %}<p>{{ bio }}</p>{% endif %}
 {% if grouped_marks %}
 <table style="margin: 6px;">
-    <thead><tr><th>test Group</th><th>Total Score</th><th>Level</th><th>Progress</th></tr></thead>
+    <thead><tr><th>Category</th><th>Total Score</th><th>Level</th><th>Progress</th></tr></thead>
 	<tbody>
         {% for group in grouped_marks %}
         <tr><td>{{ group.name }}</td>
@@ -22,9 +22,9 @@
 {% endif %}
 <table style="margin: 6px;">
     <thead><tr>
-        <th>Tests Created</th>
-        <th>Tests Completed</th>
-        <th>Tests In-Progress</th>
+        <th>Challenges Created</th>
+        <th>Challenges Completed</th>
+        <th>Challenges In-Progress</th>
     </tr></thead>
     <tbody><tr>
         <td>{{ created_tests.tests|length }}</td>
@@ -37,7 +37,7 @@
 
 {% if created_tests.tests|length > 0 %}
 <section class="col_7" >
-	<header><h3>Created Tests</h3></header>
+	<header><h3>Created Challenges</h3></header>
 	{% for test in created_tests.tests %}
 		<div class="test-preview{%if this_user and test.num_marked != test.times_taken %} new-to-be-marked{% endif %}"> 
             <div>{% include "test.html" %}</div>
@@ -45,15 +45,15 @@
                 <ul class="button-bar">
                     <li><a href="{{ nav_urls.create_test }}/{{ test.id }}" class="button">Edit</a></li>
                 {% if test.open %}
-                    <li><a href="{{ nav_urls.tests }}/{{ test.id }}/f" class="button">Close Test</a></li>
+                    <li><a href="{{ nav_urls.tests }}/{{ test.id }}/f" class="button">Close Challenge</a></li>
                 {% else %}
-                    <li><a href="{{ nav_urls.tests }}/{{ test.id }}/t" class="button">Open Test</a></li>
+                    <li><a href="{{ nav_urls.tests }}/{{ test.id }}/t" class="button">Open Challenge</a></li>
                 {% endif %}
                 </ul>
             {% endif %}
 		</div>
     {% empty %}
-        <p>No tests have been created.</p>
+        <p>No challenges have been created.</p>
 	{% endfor %}
     {% if created_tests.next and created_tests.more %}
         <a href="?next_created={{ created_tests.next }}">See more...</a>
@@ -63,7 +63,7 @@
 
 {% if this_user %}
     <section class="col_7" >
-        <header><h3>In-Progress Tests</h3></header>
+        <header><h3>In-Progress Challenges</h3></header>
         {% for mark in in_progress.marks %}
         <div class="test-preview"> 
             {% with mark.test as test %}
@@ -72,9 +72,9 @@
         </div>
         {% empty %}
             {% if not completed|length > 0 %}
-                <p>All tests have been marked.</p>
+                <p>All challenges have been marked.</p>
             {% else %}
-                <p>No tests have been taken.</p>
+                <p>No challenges have been taken.</p>
             {% endif %}
         {% endfor %}
         {% if in_progress.next and in_progress.more %}
@@ -83,7 +83,7 @@
     </section>
 
     <section class="col_7" >
-        <header><h3>Completed Tests</h3></header>
+        <header><h3>Completed Challenges</h3></header>
         {% for mark in completed.marks %}
             <section class="test-preview">
             {% with mark.test as test %}
@@ -92,9 +92,9 @@
             </section>
         {% empty %}
             {% if not in_progress|length > 0 %}
-            <p>None of the taken tests have been marked yet.</p>
+            <p>None of the taken challenges have been marked yet.</p>
             {% else %}
-            <p>No tests have been taken.</p>
+            <p>No challenges have been taken.</p>
             {% endif %}
         {% endfor %}
         {% if completed.next and completed.more %}
@@ -104,7 +104,7 @@
 {% else %}
     {% if in_progress.marks|length > 0 or completed.marks|length > 0 %}
     <section class="col_7" >
-        <header><h3>Recently Completed Tests</h3></header>
+        <header><h3>Recently Completed Challenges</h3></header>
         <ul>
         {% for mark in in_progress.marks %}
             <li>{{ mark.test.title }}</li>
