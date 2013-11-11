@@ -10,6 +10,9 @@ import re
 import json
 import itertools
 
+import random # to generate random ids
+import string
+
 ## Imports from GAE
 from google.appengine.ext.webapp import template
 from google.appengine.api import users, memcache, mail, search
@@ -324,7 +327,8 @@ class CreateAlterTest( webapp2.RequestHandler ):
 
 
         # Create an id and save the test if the group is valid
-        test.id = str( test.put().id() )
+        #test.id = str( test.put().id() )
+        test.id = ''.join(random.choice(string.digits+string.ascii_lowercase) for x in range(20))
         test.put()
 
         # Keep track of which test groups a user has used
